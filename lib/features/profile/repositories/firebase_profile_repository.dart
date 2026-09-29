@@ -30,4 +30,48 @@ class FirebaseProfileRepository {
 
     return ShareTimeUser.fromMap(snapshot.id, data);
   }
+
+  Future<void> updateProfile({
+    required String fullName,
+    required String phoneNumber,
+    required String aboutMe,
+    required String interests,
+    required String hobbies,
+    required String languages,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw StateError('No signed-in user.');
+    }
+
+    await user.updateDisplayName(fullName.trim());
+
+    await _firestore.collection('users').doc(user.uid).set(
+      {
+        'fullName': fullName.trim(),
+        'phoneNumber': phoneNumber.trim(),
+        'aboutMe': aboutMe.trim(),
+        'interests': interests.trim(),
+        'hobbies': hobbies.trim(),
+        'languages': languages.trim(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
+  }
+
+  Future<void> updateAvailability(bool isAvailable) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw StateError('No signed-in user.');
+    }
+
+    await _firestore.collection('users').doc(user.uid).set(
+      {
+        'isAvailable': isAvailable,
+        'availabilityUpdatedAt': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
+  }
 }
