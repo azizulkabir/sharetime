@@ -148,9 +148,9 @@ class _HomeScreenState extends State<HomeScreen> {
       body: RefreshIndicator(
         onRefresh: _loadProfile,
         child: _isLoading
-            ? const ListView(
-                physics: AlwaysScrollableScrollPhysics(),
-                children: [
+            ? ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: const [
                   SizedBox(height: 220),
                   Center(child: CircularProgressIndicator()),
                 ],
