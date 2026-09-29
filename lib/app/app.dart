@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
+import '../features/auth/login_screen.dart';
+import '../features/auth/register_screen.dart';
 import '../features/splash/splash_screen.dart';
+import 'routes.dart';
 
 class ShareTimeApp extends StatelessWidget {
   const ShareTimeApp({super.key});
@@ -11,7 +14,12 @@ class ShareTimeApp extends StatelessWidget {
       title: 'ShareTime',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const SplashScreen(),
+      initialRoute: AppRoutes.splash,
+      routes: {
+        AppRoutes.splash: (_) => const SplashScreen(),
+        AppRoutes.login: (_) => const LoginScreen(),
+        AppRoutes.register: (_) => const RegisterScreen(),
+      },
     );
   }
 }
