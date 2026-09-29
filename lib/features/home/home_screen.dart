@@ -279,10 +279,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     value: _verificationLabel(),
                   ),
                   const SizedBox(height: 10),
-                  const _OverviewCard(
+                  _OverviewCard(
                     icon: Icons.radio_button_checked_rounded,
                     title: 'Service availability',
-                    value: 'Setup coming next',
+                    value: _profile?.isAvailable == true
+                        ? 'Available'
+                        : 'Unavailable',
                   ),
                   const SizedBox(height: 24),
                   Text(
@@ -299,23 +301,32 @@ class _HomeScreenState extends State<HomeScreen> {
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
                     childAspectRatio: 1.35,
-                    children: const [
+                    children: [
                       _QuickActionCard(
                         icon: Icons.person_outline_rounded,
                         title: 'My profile',
-                        subtitle: 'Coming next',
+                        subtitle: 'Edit profile',
+                        onTap: () async {
+                          await Navigator.pushNamed(
+                            context,
+                            AppRoutes.profile,
+                          );
+                          if (mounted) {
+                            _loadProfile();
+                          }
+                        },
                       ),
-                      _QuickActionCard(
+                      const _QuickActionCard(
                         icon: Icons.search_rounded,
                         title: 'Discover',
                         subtitle: 'Coming next',
                       ),
-                      _QuickActionCard(
+                      const _QuickActionCard(
                         icon: Icons.chat_bubble_outline_rounded,
                         title: 'Messages',
                         subtitle: 'Coming next',
                       ),
-                      _QuickActionCard(
+                      const _QuickActionCard(
                         icon: Icons.account_balance_wallet_outlined,
                         title: 'Wallet',
                         subtitle: 'Coming next',
@@ -377,41 +388,50 @@ class _QuickActionCard extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
+    this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: colors.primary),
-          const Spacer(),
-          Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.w700),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: const TextStyle(
-              color: Color(0xFF64748B),
-              fontSize: 12,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: colors.primary),
+              const Spacer(),
+              Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  color: Color(0xFF64748B),
+                  fontSize: 12,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
