@@ -73,6 +73,22 @@ class FirebaseAuthRepository implements AuthRepository {
           .doc(firebaseUser.uid)
           .set(user.toMap())
           .timeout(const Duration(seconds: 10));
+
+      await _firestore
+          .collection('publicProfiles')
+          .doc(firebaseUser.uid)
+          .set({
+            'fullName': user.fullName,
+            'categoryId': user.categoryId,
+            'categoryName': user.categoryName,
+            'aboutMe': '',
+            'interests': '',
+            'hobbies': '',
+            'languages': '',
+            'isAvailable': false,
+            'updatedAt': FieldValue.serverTimestamp(),
+          })
+          .timeout(const Duration(seconds: 10));
     } on TimeoutException {
       throw const ProfileSaveException(
         'Account was created, but profile sync timed out.',
