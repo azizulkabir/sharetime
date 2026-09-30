@@ -59,6 +59,25 @@ class FirebaseProfileRepository {
       SetOptions(merge: true),
     ).timeout(const Duration(seconds: 8));
 
+    final privateProfile =
+        await _firestore.collection('users').doc(user.uid).get();
+    final data = privateProfile.data() ?? <String, dynamic>{};
+
+    await _firestore.collection('publicProfiles').doc(user.uid).set(
+      {
+        'fullName': fullName.trim(),
+        'categoryId': (data['categoryId'] as String?) ?? '',
+        'categoryName': (data['categoryName'] as String?) ?? '',
+        'aboutMe': aboutMe.trim(),
+        'interests': interests.trim(),
+        'hobbies': hobbies.trim(),
+        'languages': languages.trim(),
+        'isAvailable': (data['isAvailable'] as bool?) ?? false,
+        'updatedAt': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    ).timeout(const Duration(seconds: 8));
+
     try {
       await user
           .updateDisplayName(fullName.trim())
@@ -80,6 +99,25 @@ class FirebaseProfileRepository {
       {
         'isAvailable': isAvailable,
         'availabilityUpdatedAt': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
+
+    final privateProfile =
+        await _firestore.collection('users').doc(user.uid).get();
+    final data = privateProfile.data() ?? <String, dynamic>{};
+
+    await _firestore.collection('publicProfiles').doc(user.uid).set(
+      {
+        'fullName': (data['fullName'] as String?) ?? user.displayName ?? '',
+        'categoryId': (data['categoryId'] as String?) ?? '',
+        'categoryName': (data['categoryName'] as String?) ?? '',
+        'aboutMe': (data['aboutMe'] as String?) ?? '',
+        'interests': (data['interests'] as String?) ?? '',
+        'hobbies': (data['hobbies'] as String?) ?? '',
+        'languages': (data['languages'] as String?) ?? '',
+        'isAvailable': isAvailable,
+        'updatedAt': FieldValue.serverTimestamp(),
       },
       SetOptions(merge: true),
     );
