@@ -102,10 +102,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Your profile has been saved successfully.'),
-        ),
+
+      setState(() {
+        _isSaving = false;
+      });
+
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            icon: const Icon(Icons.check_circle_rounded),
+            title: const Text('Save your profile'),
+            content: const Text(
+              'Your profile has been saved successfully.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          );
+        },
       );
     } catch (_) {
       if (!mounted) return;
