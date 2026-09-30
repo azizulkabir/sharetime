@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -44,8 +46,6 @@ class FirebaseProfileRepository {
       throw StateError('No signed-in user.');
     }
 
-    await user.updateDisplayName(fullName.trim());
-
     await _firestore.collection('users').doc(user.uid).set(
       {
         'fullName': fullName.trim(),
@@ -57,7 +57,17 @@ class FirebaseProfileRepository {
         'updatedAt': FieldValue.serverTimestamp(),
       },
       SetOptions(merge: true),
-    );
+    ).timeout(const Duration(seconds: 8));
+
+    try {
+      await user
+          .updateDisplayName(fullName.trim())
+          .timeout(const Duration(seconds: 5));
+    } on TimeoutException {
+      // Firestore is the source of truth for the ShareTime profile.
+      // Do not keep the UI spinning if the Firebase Auth display-name
+      // update is delayed.
+    }
   }
 
   Future<void> updateAvailability(bool isAvailable) async {
