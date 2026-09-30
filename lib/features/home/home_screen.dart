@@ -316,10 +316,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           }
                         },
                       ),
-                      const _QuickActionCard(
+                      _QuickActionCard(
                         icon: Icons.search_rounded,
                         title: 'Discover',
-                        subtitle: 'Coming next',
+                        subtitle: 'Available providers',
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.discover,
+                          );
+                        },
                       ),
                       const _QuickActionCard(
                         icon: Icons.chat_bubble_outline_rounded,
