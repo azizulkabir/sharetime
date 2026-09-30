@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/register_screen.dart';
+import '../features/discover/discover_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/splash/splash_screen.dart';
@@ -24,6 +25,7 @@ class ShareTimeApp extends StatelessWidget {
         AppRoutes.register: (_) => const RegisterScreen(),
         AppRoutes.home: (_) => const HomeScreen(),
         AppRoutes.profile: (_) => const ProfileScreen(),
+        AppRoutes.discover: (_) => const DiscoverScreen(),
       },
     );
   }
