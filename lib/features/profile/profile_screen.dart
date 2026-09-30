@@ -103,9 +103,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated successfully.')),
+        const SnackBar(
+          content: Text('Your profile has been saved successfully.'),
+        ),
       );
-      await _loadProfile();
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
