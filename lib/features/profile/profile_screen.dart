@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../auth/models/sharetime_user.dart';
 import 'repositories/firebase_profile_repository.dart';
@@ -13,6 +14,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _repository = FirebaseProfileRepository();
+  final _imagePicker = ImagePicker();
 
   final _fullNameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -24,8 +26,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   ShareTimeUser? _profile;
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _isUploadingPhoto = false;
   bool _isUpdatingAvailability = false;
   bool _isAvailable = false;
+  String _photoUrl = '';
   String? _errorMessage;
 
   @override
@@ -72,6 +76,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       setState(() {
         _profile = profile;
+        _photoUrl = profile.photoUrl;
         _isAvailable = profile.isAvailable;
         _isLoading = false;
       });
@@ -81,6 +86,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _errorMessage = 'Could not load profile.';
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _pickAndUploadPhoto() async {
+    if (_isUploadingPhoto) return;
+
+    final image = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1200,
+      imageQuality: 82,
+    );
+    if (image == null) return;
+
+    setState(() {
+      _isUploadingPhoto = true;
+    });
+
+    try {
+      final bytes = await image.readAsBytes();
+      if (bytes.lengthInBytes > 5 * 1024 * 1024) {
+        throw StateError('Image is too large.');
+      }
+
+      final url = await _repository.uploadProfilePhoto(
+        bytes: bytes,
+        fileName: image.name,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _photoUrl = url;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile picture updated.')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not upload profile picture.'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingPhoto = false;
+        });
+      }
     }
   }
 
@@ -180,6 +234,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final name = _fullNameController.text.trim();
+    final initial = name.isEmpty ? 'S' : name[0].toUpperCase();
 
     return Scaffold(
       appBar: AppBar(
@@ -210,6 +266,70 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 16),
                   ],
+                  Center(
+                    child: Column(
+                      children: [
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            CircleAvatar(
+                              radius: 48,
+                              backgroundColor: colors.primaryContainer,
+                              backgroundImage: _photoUrl.trim().isNotEmpty
+                                  ? NetworkImage(_photoUrl)
+                                  : null,
+                              child: _photoUrl.trim().isEmpty
+                                  ? Text(
+                                      initial,
+                                      style: TextStyle(
+                                        color: colors.onPrimaryContainer,
+                                        fontSize: 30,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                            Positioned(
+                              right: -4,
+                              bottom: -4,
+                              child: Material(
+                                color: colors.primary,
+                                shape: const CircleBorder(),
+                                child: IconButton(
+                                  tooltip: 'Change profile picture',
+                                  onPressed: _isUploadingPhoto
+                                      ? null
+                                      : _pickAndUploadPhoto,
+                                  icon: _isUploadingPhoto
+                                      ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : const Icon(
+                                          Icons.camera_alt_rounded,
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        TextButton.icon(
+                          onPressed:
+                              _isUploadingPhoto ? null : _pickAndUploadPhoto,
+                          icon: const Icon(Icons.photo_library_outlined),
+                          label: const Text('Choose profile picture'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
                   Container(
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
@@ -270,6 +390,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             labelText: 'Full name',
                             prefixIcon: Icon(Icons.badge_outlined),
                           ),
+                          onChanged: (_) => setState(() {}),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
                               return 'Enter your full name';
