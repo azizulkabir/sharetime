@@ -37,13 +37,13 @@ service cloud.firestore {
       allow create, update: if isSelf(providerId)
                             && request.resource.data.providerId == providerId
                             && request.resource.data.textPerMinute
-                               == get(/databases/$(database)/documents/users/$(providerId))
+                               == getAfter(/databases/$(database)/documents/users/$(providerId))
                                   .data.serviceRates.textPerMinute
                             && request.resource.data.audioPerMinute
-                               == get(/databases/$(database)/documents/users/$(providerId))
+                               == getAfter(/databases/$(database)/documents/users/$(providerId))
                                   .data.serviceRates.audioPerMinute
                             && request.resource.data.videoPerMinute
-                               == get(/databases/$(database)/documents/users/$(providerId))
+                               == getAfter(/databases/$(database)/documents/users/$(providerId))
                                   .data.serviceRates.videoPerMinute;
 
       allow delete: if false;
