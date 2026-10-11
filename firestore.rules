@@ -2,12 +2,18 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId} {
-      allow create, read: if request.auth != null
-                          && request.auth.uid == userId;
+    function signedIn() {
+      return request.auth != null;
+    }
 
-      allow update: if request.auth != null
-                    && request.auth.uid == userId
+    function isSelf(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      allow create, read: if isSelf(userId);
+
+      allow update: if isSelf(userId)
                     && request.resource.data.get('providerProgress', {})
                        == resource.data.get('providerProgress', {});
 
@@ -15,15 +21,72 @@ service cloud.firestore {
     }
 
     match /publicProfiles/{userId} {
-      allow read: if request.auth != null;
-      allow create, update: if request.auth != null
-                            && request.auth.uid == userId;
+      allow read: if signedIn();
+      allow create, update: if isSelf(userId);
       allow delete: if false;
     }
 
     match /appConfig/ratePolicy {
-      allow read: if request.auth != null;
+      allow read: if signedIn();
       allow write: if false;
+    }
+
+    match /serviceRateQuotes/{providerId} {
+      allow read: if signedIn();
+
+      allow create, update: if isSelf(providerId)
+                            && request.resource.data.providerId == providerId
+                            && request.resource.data.textPerMinute
+                               == get(/databases/$(database)/documents/users/$(providerId))
+                                  .data.serviceRates.textPerMinute
+                            && request.resource.data.audioPerMinute
+                               == get(/databases/$(database)/documents/users/$(providerId))
+                                  .data.serviceRates.audioPerMinute
+                            && request.resource.data.videoPerMinute
+                               == get(/databases/$(database)/documents/users/$(providerId))
+                                  .data.serviceRates.videoPerMinute;
+
+      allow delete: if false;
+    }
+
+    match /serviceRequests/{requestId} {
+      allow create: if signedIn()
+                    && request.resource.data.requesterId == request.auth.uid
+                    && request.resource.data.providerId != request.auth.uid
+                    && request.resource.data.status == 'pending'
+                    && request.resource.data.serviceType in ['text', 'audio', 'video']
+                    && get(/databases/$(database)/documents/publicProfiles/$(request.resource.data.providerId))
+                       .data.isAvailable == true
+                    && (
+                      (
+                        request.resource.data.serviceType == 'text'
+                        && request.resource.data.ratePerMinute
+                           == get(/databases/$(database)/documents/serviceRateQuotes/$(request.resource.data.providerId))
+                              .data.textPerMinute
+                      )
+                      ||
+                      (
+                        request.resource.data.serviceType == 'audio'
+                        && request.resource.data.ratePerMinute
+                           == get(/databases/$(database)/documents/serviceRateQuotes/$(request.resource.data.providerId))
+                              .data.audioPerMinute
+                      )
+                      ||
+                      (
+                        request.resource.data.serviceType == 'video'
+                        && request.resource.data.ratePerMinute
+                           == get(/databases/$(database)/documents/serviceRateQuotes/$(request.resource.data.providerId))
+                              .data.videoPerMinute
+                      )
+                    );
+
+      allow read: if signedIn()
+                  && (
+                    resource.data.requesterId == request.auth.uid
+                    || resource.data.providerId == request.auth.uid
+                  );
+
+      allow update, delete: if false;
     }
   }
 }
