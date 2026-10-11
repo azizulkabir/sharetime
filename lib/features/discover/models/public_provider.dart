@@ -9,6 +9,7 @@ class PublicProvider {
     required this.hobbies,
     required this.languages,
     required this.isAvailable,
+    required this.photoUrl,
   });
 
   final String id;
@@ -20,6 +21,7 @@ class PublicProvider {
   final String hobbies;
   final String languages;
   final bool isAvailable;
+  final String photoUrl;
 
   factory PublicProvider.fromMap(String id, Map<String, dynamic> data) {
     return PublicProvider(
@@ -32,6 +34,7 @@ class PublicProvider {
       hobbies: (data['hobbies'] as String?) ?? '',
       languages: (data['languages'] as String?) ?? '',
       isAvailable: (data['isAvailable'] as bool?) ?? false,
+      photoUrl: (data['photoUrl'] as String?) ?? '',
     );
   }
 }
