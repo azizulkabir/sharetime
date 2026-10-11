@@ -65,12 +65,32 @@ class FirebaseRatesRepository {
       throw StateError('One or more rates exceed the current level ceiling.');
     }
 
-    await _firestore.collection('users').doc(user.uid).set(
+    final batch = _firestore.batch();
+
+    final userRef = _firestore.collection('users').doc(user.uid);
+    batch.set(
+      userRef,
       {
         'serviceRates': rates.toMap(),
         'ratesUpdatedAt': FieldValue.serverTimestamp(),
       },
       SetOptions(merge: true),
     );
+
+    final quoteRef =
+        _firestore.collection('serviceRateQuotes').doc(user.uid);
+    batch.set(
+      quoteRef,
+      {
+        'providerId': user.uid,
+        'textPerMinute': rates.textPerMinute,
+        'audioPerMinute': rates.audioPerMinute,
+        'videoPerMinute': rates.videoPerMinute,
+        'updatedAt': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
+
+    await batch.commit();
   }
 }
