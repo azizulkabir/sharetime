@@ -14,6 +14,7 @@ class ShareTimeUser {
     this.hobbies = '',
     this.languages = '',
     this.isAvailable = false,
+    this.photoUrl = '',
   });
 
   final String id;
@@ -30,6 +31,7 @@ class ShareTimeUser {
   final String hobbies;
   final String languages;
   final bool isAvailable;
+  final String photoUrl;
 
   Map<String, dynamic> toMap() {
     return {
@@ -46,6 +48,7 @@ class ShareTimeUser {
       'hobbies': hobbies,
       'languages': languages,
       'isAvailable': isAvailable,
+      'photoUrl': photoUrl,
     };
   }
 
@@ -70,6 +73,7 @@ class ShareTimeUser {
       hobbies: (data['hobbies'] as String?) ?? '',
       languages: (data['languages'] as String?) ?? '',
       isAvailable: (data['isAvailable'] as bool?) ?? false,
+      photoUrl: (data['photoUrl'] as String?) ?? '',
     );
   }
 }
