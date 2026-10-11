@@ -327,6 +327,17 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         },
                       ),
+                      _QuickActionCard(
+                        icon: Icons.payments_outlined,
+                        title: 'My rates',
+                        subtitle: 'Text, audio & video',
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.rates,
+                          );
+                        },
+                      ),
                       const _QuickActionCard(
                         icon: Icons.chat_bubble_outline_rounded,
                         title: 'Messages',
