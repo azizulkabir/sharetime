@@ -41,14 +41,19 @@ class PublicProviderProfileScreen extends StatelessWidget {
                     CircleAvatar(
                       radius: 44,
                       backgroundColor: colors.primaryContainer,
-                      child: Text(
-                        initial,
-                        style: TextStyle(
-                          color: colors.onPrimaryContainer,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 30,
-                        ),
-                      ),
+                      backgroundImage: provider.photoUrl.trim().isNotEmpty
+                          ? NetworkImage(provider.photoUrl)
+                          : null,
+                      child: provider.photoUrl.trim().isEmpty
+                          ? Text(
+                              initial,
+                              style: TextStyle(
+                                color: colors.onPrimaryContainer,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 30,
+                              ),
+                            )
+                          : null,
                     ),
                     Positioned(
                       right: 1,
