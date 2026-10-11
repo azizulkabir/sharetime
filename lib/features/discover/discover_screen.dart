@@ -307,6 +307,7 @@ class _ProviderCard extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 }
