@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'models/public_provider.dart';
+import 'public_provider_profile_screen.dart';
 import 'repositories/firebase_discover_repository.dart';
 
 class DiscoverScreen extends StatefulWidget {
@@ -201,14 +202,25 @@ class _ProviderCard extends StatelessWidget {
     final initial =
         provider.fullName.isEmpty ? 'S' : provider.fullName[0].toUpperCase();
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => PublicProviderProfileScreen(provider: provider),
+            ),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Stack(
@@ -292,7 +304,8 @@ class _ProviderCard extends StatelessWidget {
               ],
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
