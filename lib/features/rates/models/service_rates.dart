@@ -3,13 +3,11 @@ class ServiceRates {
     this.textPerMinute = 0,
     this.audioPerMinute = 0,
     this.videoPerMinute = 0,
-    this.level = 1,
   });
 
   final double textPerMinute;
   final double audioPerMinute;
   final double videoPerMinute;
-  final int level;
 
   factory ServiceRates.fromMap(Map<String, dynamic>? data) {
     final map = data ?? const <String, dynamic>{};
@@ -17,7 +15,6 @@ class ServiceRates {
       textPerMinute: _toDouble(map['textPerMinute']),
       audioPerMinute: _toDouble(map['audioPerMinute']),
       videoPerMinute: _toDouble(map['videoPerMinute']),
-      level: (map['level'] as num?)?.toInt() ?? 1,
     );
   }
 
@@ -26,7 +23,6 @@ class ServiceRates {
       'textPerMinute': textPerMinute,
       'audioPerMinute': audioPerMinute,
       'videoPerMinute': videoPerMinute,
-      'level': level,
     };
   }
 
