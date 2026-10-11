@@ -1,14 +1,133 @@
 import 'package:flutter/material.dart';
 
+import '../service_requests/models/service_request.dart';
+import '../service_requests/repositories/firebase_service_request_repository.dart';
 import 'models/public_provider.dart';
 
-class PublicProviderProfileScreen extends StatelessWidget {
+class PublicProviderProfileScreen extends StatefulWidget {
   const PublicProviderProfileScreen({
     super.key,
     required this.provider,
   });
 
   final PublicProvider provider;
+
+  @override
+  State<PublicProviderProfileScreen> createState() =>
+      _PublicProviderProfileScreenState();
+}
+
+class _PublicProviderProfileScreenState
+    extends State<PublicProviderProfileScreen> {
+  final _requestRepository = FirebaseServiceRequestRepository();
+  bool _isCreatingRequest = false;
+
+  PublicProvider get provider => widget.provider;
+
+  Future<void> _startService(ServiceType serviceType) async {
+    if (_isCreatingRequest) return;
+
+    setState(() {
+      _isCreatingRequest = true;
+    });
+
+    try {
+      final quote =
+          await _requestRepository.fetchProviderRateQuote(provider.id);
+
+      if (!mounted) return;
+
+      if (quote == null) {
+        await showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Rate unavailable'),
+            content: const Text(
+              'This provider has not published service rates yet. '
+              'Ask them to save their rates and try again.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+
+      final rate = quote.rateFor(serviceType);
+      final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: Text(serviceType.label),
+              content: Text(
+                'Rate: ${_formatRate(rate)} BDT/min\n\n'
+                'Do you want to send a service request to ${provider.fullName}?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: const Text('Send request'),
+                ),
+              ],
+            ),
+          ) ??
+          false;
+
+      if (!confirmed || !mounted) return;
+
+      final requestId = await _requestRepository.createRequest(
+        providerId: provider.id,
+        providerName: provider.fullName,
+        serviceType: serviceType,
+        ratePerMinute: rate,
+      );
+
+      if (!mounted) return;
+
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          icon: const Icon(Icons.check_circle_rounded),
+          title: const Text('Request sent'),
+          content: Text(
+            '${serviceType.label} request sent successfully.\n'
+            'Request ID: ${requestId.substring(0, 8)}',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not create the service request.'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCreatingRequest = false;
+        });
+      }
+    }
+  }
+
+  String _formatRate(double rate) {
+    if (rate == rate.roundToDouble()) return rate.toInt().toString();
+    return rate.toStringAsFixed(2);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -119,6 +238,55 @@ class PublicProviderProfileScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
+          Text(
+            'Start a service',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _ServiceActionButton(
+                  icon: Icons.chat_bubble_outline_rounded,
+                  label: 'Text',
+                  onPressed: _isCreatingRequest
+                      ? null
+                      : () => _startService(ServiceType.text),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ServiceActionButton(
+                  icon: Icons.call_outlined,
+                  label: 'Audio',
+                  onPressed: _isCreatingRequest
+                      ? null
+                      : () => _startService(ServiceType.audio),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ServiceActionButton(
+                  icon: Icons.videocam_outlined,
+                  label: 'Video',
+                  onPressed: _isCreatingRequest
+                      ? null
+                      : () => _startService(ServiceType.video),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'The provider rate is shown only after you choose a service.',
+            style: TextStyle(
+              color: Color(0xFF64748B),
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 18),
           _ProfileSection(
             title: 'About Me',
             icon: Icons.person_outline_rounded,
@@ -171,6 +339,36 @@ class PublicProviderProfileScreen extends StatelessWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ServiceActionButton extends StatelessWidget {
+  const _ServiceActionButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon),
+          const SizedBox(height: 5),
+          Text(label),
         ],
       ),
     );
