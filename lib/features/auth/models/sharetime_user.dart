@@ -57,6 +57,10 @@ class ShareTimeUser {
       'isAvailable': isAvailable,
       'photoUrl': photoUrl,
       'serviceRates': serviceRates,
+      'providerProgress': const {
+        'completedOperations': 0,
+        'points': 0,
+      },
     };
   }
 
