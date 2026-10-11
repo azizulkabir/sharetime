@@ -85,6 +85,7 @@ class FirebaseAuthRepository implements AuthRepository {
             'interests': '',
             'hobbies': '',
             'languages': '',
+            'photoUrl': '',
             'isAvailable': false,
             'updatedAt': FieldValue.serverTimestamp(),
           })
