@@ -244,14 +244,19 @@ class _ProviderCard extends StatelessWidget {
               CircleAvatar(
                 radius: 28,
                 backgroundColor: colors.primaryContainer,
-                child: Text(
-                  initial,
-                  style: TextStyle(
-                    color: colors.onPrimaryContainer,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 20,
-                  ),
-                ),
+                backgroundImage: provider.photoUrl.trim().isNotEmpty
+                    ? NetworkImage(provider.photoUrl)
+                    : null,
+                child: provider.photoUrl.trim().isEmpty
+                    ? Text(
+                        initial,
+                        style: TextStyle(
+                          color: colors.onPrimaryContainer,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 20,
+                        ),
+                      )
+                    : null,
               ),
               Positioned(
                 right: -1,
