@@ -15,6 +15,12 @@ class ShareTimeUser {
     this.languages = '',
     this.isAvailable = false,
     this.photoUrl = '',
+    this.serviceRates = const <String, dynamic>{
+      'textPerMinute': 0.0,
+      'audioPerMinute': 0.0,
+      'videoPerMinute': 0.0,
+      'level': 1,
+    },
   });
 
   final String id;
@@ -32,6 +38,7 @@ class ShareTimeUser {
   final String languages;
   final bool isAvailable;
   final String photoUrl;
+  final Map<String, dynamic> serviceRates;
 
   Map<String, dynamic> toMap() {
     return {
@@ -49,6 +56,7 @@ class ShareTimeUser {
       'languages': languages,
       'isAvailable': isAvailable,
       'photoUrl': photoUrl,
+      'serviceRates': serviceRates,
     };
   }
 
@@ -74,6 +82,9 @@ class ShareTimeUser {
       languages: (data['languages'] as String?) ?? '',
       isAvailable: (data['isAvailable'] as bool?) ?? false,
       photoUrl: (data['photoUrl'] as String?) ?? '',
+      serviceRates: Map<String, dynamic>.from(
+        (data['serviceRates'] as Map?) ?? const <String, dynamic>{},
+      ),
     );
   }
 }
