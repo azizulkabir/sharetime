@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'models/public_provider.dart';
@@ -46,7 +48,20 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           _selectedCategory = 'All';
         }
       });
-    } catch (_) {
+    } on FirebaseException catch (error, stackTrace) {
+      debugPrint('Discover Firestore error: ${error.code} - ${error.message}');
+      debugPrintStack(stackTrace: stackTrace);
+
+      if (!mounted) return;
+      setState(() {
+        _errorMessage =
+            'Could not load available providers. Firebase: ${error.code}';
+        _isLoading = false;
+      });
+    } catch (error, stackTrace) {
+      debugPrint('Discover error: $error');
+      debugPrintStack(stackTrace: stackTrace);
+
       if (!mounted) return;
       setState(() {
         _errorMessage = 'Could not load available providers.';
