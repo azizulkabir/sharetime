@@ -42,6 +42,44 @@ class FirebaseChatRepository {
         );
   }
 
+  Stream<bool> watchOtherTyping({
+    required String sessionId,
+    required String otherUserId,
+  }) {
+    return _firestore
+        .collection('serviceSessions')
+        .doc(sessionId)
+        .collection('typing')
+        .doc(otherUserId)
+        .snapshots()
+        .map((snapshot) {
+      final data = snapshot.data();
+      if (data == null || data['isTyping'] != true) return false;
+      final updatedAt = (data['updatedAt'] as Timestamp?)?.toDate();
+      if (updatedAt == null) return true;
+      return DateTime.now().difference(updatedAt).inSeconds < 8;
+    });
+  }
+
+  Future<void> setTyping({
+    required String sessionId,
+    required bool isTyping,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    await _firestore
+        .collection('serviceSessions')
+        .doc(sessionId)
+        .collection('typing')
+        .doc(user.uid)
+        .set({
+      'userId': user.uid,
+      'isTyping': isTyping,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   Future<void> sendMessage({
     required String sessionId,
     required String text,
@@ -63,13 +101,51 @@ class FirebaseChatRepository {
       'senderId': user.uid,
       'text': cleanText,
       'sentAt': FieldValue.serverTimestamp(),
+      'deliveredAt': null,
+      'readAt': null,
     });
     batch.update(sessionRef, {
       'lastMessage': cleanText,
       'lastMessageSenderId': user.uid,
       'lastMessageAt': FieldValue.serverTimestamp(),
+      'lastMessageReadBy': [user.uid],
       'updatedAt': FieldValue.serverTimestamp(),
     });
+    await batch.commit();
+    await setTyping(sessionId: sessionId, isTyping: false);
+  }
+
+  Future<void> markIncomingMessagesDeliveredAndRead({
+    required String sessionId,
+    required List<ChatMessage> messages,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final incoming = messages
+        .where((message) => message.senderId != user.uid && !message.isRead)
+        .toList();
+
+    final sessionRef =
+        _firestore.collection('serviceSessions').doc(sessionId);
+    final batch = _firestore.batch();
+
+    for (final message in incoming) {
+      final messageRef = sessionRef.collection('messages').doc(message.id);
+      final updates = <String, dynamic>{
+        'readAt': FieldValue.serverTimestamp(),
+      };
+      if (!message.isDelivered) {
+        updates['deliveredAt'] = FieldValue.serverTimestamp();
+      }
+      batch.update(messageRef, updates);
+    }
+
+    batch.update(sessionRef, {
+      'lastMessageReadBy': FieldValue.arrayUnion([user.uid]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
     await batch.commit();
   }
 }
