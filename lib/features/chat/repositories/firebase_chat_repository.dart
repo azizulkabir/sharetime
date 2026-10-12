@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../sessions/models/service_session.dart';
+import '../../service_requests/models/service_request.dart';
 import '../../sessions/repositories/firebase_service_session_repository.dart';
 import '../models/chat_message.dart';
 
