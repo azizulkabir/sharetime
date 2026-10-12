@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../service_requests/models/service_request.dart';
 import '../service_requests/repositories/firebase_service_request_repository.dart';
+import '../service_requests/waiting_for_text_request_screen.dart';
 import 'models/public_provider.dart';
 
 class PublicProviderProfileScreen extends StatefulWidget {
@@ -91,23 +92,34 @@ class _PublicProviderProfileScreenState
 
       if (!mounted) return;
 
-      await showDialog<void>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          icon: const Icon(Icons.check_circle_rounded),
-          title: const Text('Request sent'),
-          content: Text(
-            '${serviceType.label} request sent successfully.\n'
-            'Request ID: ${requestId.substring(0, 8)}',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('OK'),
+      if (serviceType == ServiceType.text) {
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => WaitingForTextRequestScreen(
+              requestId: requestId,
+              providerName: provider.fullName,
             ),
-          ],
-        ),
-      );
+          ),
+        );
+      } else {
+        await showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            icon: const Icon(Icons.check_circle_rounded),
+            title: const Text('Request sent'),
+            content: Text(
+              '${serviceType.label} request sent successfully.\n'
+              'Request ID: ${requestId.substring(0, 8)}',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
