@@ -42,48 +42,6 @@ class FirebaseChatRepository {
         );
   }
 
-  Stream<bool> watchOtherTyping({
-    required String sessionId,
-    required String otherUserId,
-  }) {
-    return _firestore
-        .collection('serviceSessions')
-        .doc(sessionId)
-        .collection('typing')
-        .doc(otherUserId)
-        .snapshots()
-        .map((snapshot) {
-      final data = snapshot.data();
-      if (data == null || data['isTyping'] != true) return false;
-      final updatedAt = (data['updatedAt'] as Timestamp?)?.toDate();
-      if (updatedAt == null) return true;
-      return DateTime.now().difference(updatedAt).inSeconds < 8;
-    });
-  }
-
-  Future<void> setTyping({
-    required String sessionId,
-    required bool isTyping,
-  }) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-
-    try {
-      await _firestore
-          .collection('serviceSessions')
-          .doc(sessionId)
-          .collection('typing')
-          .doc(user.uid)
-          .set({
-        'userId': user.uid,
-        'isTyping': isTyping,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-    } on FirebaseException catch (error) {
-      if (error.code != 'permission-denied') rethrow;
-    }
-  }
-
   Future<void> sendMessage({
     required String sessionId,
     required String text,
@@ -116,7 +74,6 @@ class FirebaseChatRepository {
       'updatedAt': FieldValue.serverTimestamp(),
     });
     await batch.commit();
-    await setTyping(sessionId: sessionId, isTyping: false);
   }
 
   Future<void> markIncomingMessagesDeliveredAndRead({
