@@ -16,6 +16,8 @@ class ServiceSession {
     required this.createdAt,
     required this.lastMessage,
     required this.lastMessageAt,
+    required this.lastMessageSenderId,
+    required this.lastMessageReadBy,
   });
 
   final String id;
@@ -30,6 +32,8 @@ class ServiceSession {
   final DateTime? createdAt;
   final String lastMessage;
   final DateTime? lastMessageAt;
+  final String lastMessageSenderId;
+  final List<String> lastMessageReadBy;
 
   factory ServiceSession.fromDocument(
     DocumentSnapshot<Map<String, dynamic>> document,
@@ -54,6 +58,10 @@ class ServiceSession {
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       lastMessage: (data['lastMessage'] as String?) ?? '',
       lastMessageAt: (data['lastMessageAt'] as Timestamp?)?.toDate(),
+      lastMessageSenderId: (data['lastMessageSenderId'] as String?) ?? '',
+      lastMessageReadBy: List<String>.from(
+        (data['lastMessageReadBy'] as List?) ?? const <String>[],
+      ),
     );
   }
 
