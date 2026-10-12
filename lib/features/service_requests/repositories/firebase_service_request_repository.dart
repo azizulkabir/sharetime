@@ -21,6 +21,17 @@ class FirebaseServiceRequestRepository {
     return ProviderRateQuote.fromMap(data);
   }
 
+  Stream<IncomingServiceRequest?> watchRequest(String requestId) {
+    return _firestore
+        .collection('serviceRequests')
+        .doc(requestId)
+        .snapshots()
+        .map((snapshot) {
+      if (!snapshot.exists) return null;
+      return IncomingServiceRequest.fromDocument(snapshot);
+    });
+  }
+
   Stream<List<IncomingServiceRequest>> watchIncomingRequests() {
     final user = _auth.currentUser;
     if (user == null) {
