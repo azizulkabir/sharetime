@@ -57,6 +57,8 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> {
           createdAt: DateTime.now(),
           lastMessage: '',
           lastMessageAt: null,
+          lastMessageSenderId: '',
+          lastMessageReadBy: const <String>[],
         );
 
         await Navigator.of(context).push(
