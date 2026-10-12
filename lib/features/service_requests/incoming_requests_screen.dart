@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../chat/chat_screen.dart';
 import '../calls/audio_call_screen.dart';
+import '../calls/video_call_screen.dart';
 import '../sessions/models/service_session.dart';
 import 'models/service_request.dart';
 import 'repositories/firebase_service_request_repository.dart';
@@ -44,9 +45,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> {
         ),
       );
 
-      if (accept &&
-          (request.serviceType == ServiceType.text ||
-              request.serviceType == ServiceType.audio)) {
+      if (accept) {
         final session = ServiceSession(
           id: request.id,
           requestId: request.id,
@@ -62,13 +61,25 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> {
           lastMessageAt: null,
         );
 
-        await Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => request.serviceType == ServiceType.text
-                ? ChatScreen(session: session)
-                : AudioCallScreen(session: session),
-          ),
-        );
+        if (request.serviceType == ServiceType.text) {
+          await Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => ChatScreen(session: session),
+            ),
+          );
+        } else if (request.serviceType == ServiceType.audio) {
+          await Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => AudioCallScreen(session: session),
+            ),
+          );
+        } else {
+          await Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => VideoCallScreen(session: session),
+            ),
+          );
+        }
       }
     } catch (_) {
       if (!mounted) return;
