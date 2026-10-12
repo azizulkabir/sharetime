@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'models/service_request.dart';
 import 'repositories/firebase_service_request_repository.dart';
+import '../sessions/service_session_screen.dart';
 
 class MyRequestsScreen extends StatelessWidget {
   const MyRequestsScreen({super.key});
@@ -219,11 +220,20 @@ class MyRequestsScreen extends StatelessWidget {
                     ),
                     if (request.status == 'accepted') ...[
                       const SizedBox(height: 12),
-                      const Text(
-                        'Accepted. The service session will become available in the next step.',
-                        style: TextStyle(
-                          color: Color(0xFF16A34A),
-                          fontWeight: FontWeight.w600,
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => ServiceSessionScreen(
+                                  sessionId: request.id,
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.meeting_room_outlined),
+                          label: const Text('Open session'),
                         ),
                       ),
                     ],
