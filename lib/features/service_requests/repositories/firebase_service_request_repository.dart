@@ -21,6 +21,48 @@ class FirebaseServiceRequestRepository {
     return ProviderRateQuote.fromMap(data);
   }
 
+  Stream<List<IncomingServiceRequest>> watchIncomingRequests() {
+    final user = _auth.currentUser;
+    if (user == null) {
+      return Stream.value(const <IncomingServiceRequest>[]);
+    }
+
+    return _firestore
+        .collection('serviceRequests')
+        .where('providerId', isEqualTo: user.uid)
+        .snapshots()
+        .map((snapshot) {
+      final requests = snapshot.docs
+          .map(IncomingServiceRequest.fromDocument)
+          .where((request) => request.status == 'pending')
+          .toList();
+
+      requests.sort((a, b) {
+        final aTime = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bTime = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bTime.compareTo(aTime);
+      });
+
+      return requests;
+    });
+  }
+
+  Future<void> respondToRequest({
+    required String requestId,
+    required bool accept,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw StateError('No signed-in user.');
+    }
+
+    await _firestore.collection('serviceRequests').doc(requestId).update({
+      'status': accept ? 'accepted' : 'declined',
+      'respondedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   Future<String> createRequest({
     required String providerId,
     required String providerName,
