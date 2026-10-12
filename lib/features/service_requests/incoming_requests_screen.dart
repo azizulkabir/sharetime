@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../chat/chat_screen.dart';
+import '../sessions/models/service_session.dart';
 import 'models/service_request.dart';
 import 'repositories/firebase_service_request_repository.dart';
 
@@ -40,6 +42,29 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> {
           ),
         ),
       );
+
+      if (accept && request.serviceType == ServiceType.text) {
+        final session = ServiceSession(
+          id: request.id,
+          requestId: request.id,
+          requesterId: request.requesterId,
+          requesterName: request.requesterName,
+          providerId: request.providerId,
+          providerName: request.providerName,
+          serviceType: request.serviceType,
+          ratePerMinute: request.ratePerMinute,
+          status: 'ready',
+          createdAt: DateTime.now(),
+          lastMessage: '',
+          lastMessageAt: null,
+        );
+
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => ChatScreen(session: session),
+          ),
+        );
+      }
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
