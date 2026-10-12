@@ -371,10 +371,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         },
                       ),
-                      const _QuickActionCard(
+                      _QuickActionCard(
                         icon: Icons.chat_bubble_outline_rounded,
                         title: 'Messages',
-                        subtitle: 'Coming next',
+                        subtitle: 'Chats',
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.chats,
+                          );
+                        },
                       ),
                       const _QuickActionCard(
                         icon: Icons.account_balance_wallet_outlined,
