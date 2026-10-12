@@ -14,10 +14,10 @@ class ServiceSession {
     required this.ratePerMinute,
     required this.status,
     required this.createdAt,
-    required this.lastMessage,
-    required this.lastMessageAt,
-    required this.lastMessageSenderId,
-    required this.lastMessageReadBy,
+    this.lastMessage = '',
+    this.lastMessageAt,
+    this.lastMessageSenderId = '',
+    this.lastMessageReadBy = const <String>[],
   });
 
   final String id;
