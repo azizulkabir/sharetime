@@ -24,6 +24,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final _controller = TextEditingController();
   Timer? _typingTimer;
   bool _isSending = false;
+  bool _typingActive = false;
 
   String? get _currentUid => FirebaseAuth.instance.currentUser?.uid;
 
@@ -54,19 +55,27 @@ class _ChatScreenState extends State<ChatScreen> {
     _typingTimer?.cancel();
 
     if (value.trim().isEmpty) {
-      _repository.setTyping(
-        sessionId: widget.session.id,
-        isTyping: false,
-      );
+      if (_typingActive) {
+        _typingActive = false;
+        _repository.setTyping(
+          sessionId: widget.session.id,
+          isTyping: false,
+        );
+      }
       return;
     }
 
-    _repository.setTyping(
-      sessionId: widget.session.id,
-      isTyping: true,
-    );
+    if (!_typingActive) {
+      _typingActive = true;
+      _repository.setTyping(
+        sessionId: widget.session.id,
+        isTyping: true,
+      );
+    }
 
     _typingTimer = Timer(const Duration(milliseconds: 1400), () {
+      if (!_typingActive) return;
+      _typingActive = false;
       _repository.setTyping(
         sessionId: widget.session.id,
         isTyping: false,
