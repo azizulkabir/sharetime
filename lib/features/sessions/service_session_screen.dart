@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../service_requests/models/service_request.dart';
+import '../calls/audio_call_screen.dart';
 import '../chat/chat_screen.dart';
 import 'models/service_session.dart';
 import 'repositories/firebase_service_session_repository.dart';
@@ -148,6 +149,21 @@ class ServiceSessionScreen extends StatelessWidget {
                     },
                     icon: const Icon(Icons.chat_bubble_outline_rounded),
                     label: const Text('Open chat'),
+                  ),
+                )
+              else if (session.serviceType == ServiceType.audio)
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => AudioCallScreen(session: session),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.call_rounded),
+                    label: const Text('Open audio call'),
                   ),
                 )
               else
