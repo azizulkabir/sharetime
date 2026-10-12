@@ -360,6 +360,17 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         },
                       ),
+                      _QuickActionCard(
+                        icon: Icons.meeting_room_outlined,
+                        title: 'My sessions',
+                        subtitle: 'Accepted service sessions',
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.mySessions,
+                          );
+                        },
+                      ),
                       const _QuickActionCard(
                         icon: Icons.chat_bubble_outline_rounded,
                         title: 'Messages',
