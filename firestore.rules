@@ -89,11 +89,49 @@ service cloud.firestore {
       allow update: if signedIn()
                     && resource.data.providerId == request.auth.uid
                     && resource.data.status == 'pending'
-                    && request.resource.data.status in ['accepted', 'declined']
-                    && request.resource.data.diff(resource.data).affectedKeys()
-                       .hasOnly(['status', 'respondedAt', 'updatedAt']);
+                    && (
+                      (
+                        request.resource.data.status == 'declined'
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                           .hasOnly(['status', 'respondedAt', 'updatedAt'])
+                      )
+                      ||
+                      (
+                        request.resource.data.status == 'accepted'
+                        && request.resource.data.sessionId == requestId
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                           .hasOnly(['status', 'respondedAt', 'updatedAt', 'sessionId'])
+                      )
+                    );
 
       allow delete: if false;
+    }
+
+    match /serviceSessions/{sessionId} {
+      allow create: if signedIn()
+                    && request.resource.data.requestId == sessionId
+                    && request.resource.data.providerId == request.auth.uid
+                    && request.resource.data.status == 'ready'
+                    && request.resource.data.participants.size() == 2
+                    && request.resource.data.participants.hasAll([
+                      request.resource.data.requesterId,
+                      request.resource.data.providerId
+                    ])
+                    && getAfter(/databases/$(database)/documents/serviceRequests/$(sessionId))
+                       .data.status == 'accepted'
+                    && getAfter(/databases/$(database)/documents/serviceRequests/$(sessionId))
+                       .data.requesterId == request.resource.data.requesterId
+                    && getAfter(/databases/$(database)/documents/serviceRequests/$(sessionId))
+                       .data.providerId == request.resource.data.providerId
+                    && getAfter(/databases/$(database)/documents/serviceRequests/$(sessionId))
+                       .data.serviceType == request.resource.data.serviceType
+                    && getAfter(/databases/$(database)/documents/serviceRequests/$(sessionId))
+                       .data.ratePerMinute == request.resource.data.ratePerMinute;
+
+      allow read: if signedIn()
+                  && request.auth.uid in resource.data.participants;
+
+      allow update, delete: if false;
     }
   }
 }
