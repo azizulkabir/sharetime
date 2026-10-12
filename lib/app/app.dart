@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
+import '../features/chat/chats_screen.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/register_screen.dart';
 import '../features/discover/discover_screen.dart';
@@ -34,6 +35,7 @@ class ShareTimeApp extends StatelessWidget {
         AppRoutes.incomingRequests: (_) => const IncomingRequestsScreen(),
         AppRoutes.myRequests: (_) => const MyRequestsScreen(),
         AppRoutes.mySessions: (_) => const MySessionsScreen(),
+        AppRoutes.chats: (_) => const ChatsScreen(),
       },
     );
   }
