@@ -338,6 +338,17 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         },
                       ),
+                      _QuickActionCard(
+                        icon: Icons.inbox_outlined,
+                        title: 'Requests',
+                        subtitle: 'Incoming service requests',
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.incomingRequests,
+                          );
+                        },
+                      ),
                       const _QuickActionCard(
                         icon: Icons.chat_bubble_outline_rounded,
                         title: 'Messages',
