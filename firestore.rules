@@ -134,17 +134,32 @@ service cloud.firestore {
       allow update: if signedIn()
                     && request.auth.uid in resource.data.participants
                     && resource.data.serviceType == 'text'
-                    && request.resource.data.diff(resource.data).affectedKeys()
-                       .hasOnly([
-                         'lastMessage',
-                         'lastMessageSenderId',
-                         'lastMessageAt',
-                         'updatedAt'
-                       ])
-                    && request.resource.data.lastMessageSenderId == request.auth.uid
-                    && request.resource.data.lastMessage is string
-                    && request.resource.data.lastMessage.size() > 0
-                    && request.resource.data.lastMessage.size() <= 4000;
+                    && (
+                      (
+                        request.resource.data.diff(resource.data).affectedKeys()
+                           .hasOnly([
+                             'lastMessage',
+                             'lastMessageSenderId',
+                             'lastMessageAt',
+                             'lastMessageReadBy',
+                             'updatedAt'
+                           ])
+                        && request.resource.data.lastMessageSenderId == request.auth.uid
+                        && request.resource.data.lastMessage is string
+                        && request.resource.data.lastMessage.size() > 0
+                        && request.resource.data.lastMessage.size() <= 4000
+                        && request.resource.data.lastMessageReadBy == [request.auth.uid]
+                      )
+                      ||
+                      (
+                        request.resource.data.diff(resource.data).affectedKeys()
+                           .hasOnly(['lastMessageReadBy', 'updatedAt'])
+                        && request.resource.data.lastMessageReadBy
+                           .hasAll(resource.data.get('lastMessageReadBy', []))
+                        && request.resource.data.lastMessageReadBy
+                           .hasAll([request.auth.uid])
+                      )
+                    );
 
       allow delete: if false;
 
@@ -164,10 +179,49 @@ service cloud.firestore {
                       && request.resource.data.text is string
                       && request.resource.data.text.size() > 0
                       && request.resource.data.text.size() <= 4000
+                      && request.resource.data.deliveredAt == null
+                      && request.resource.data.readAt == null
                       && request.resource.data.keys()
-                         .hasOnly(['senderId', 'text', 'sentAt']);
+                         .hasOnly([
+                           'senderId',
+                           'text',
+                           'sentAt',
+                           'deliveredAt',
+                           'readAt'
+                         ]);
 
-        allow update, delete: if false;
+        allow update: if signedIn()
+                      && request.auth.uid in
+                         get(/databases/$(database)/documents/serviceSessions/$(sessionId))
+                         .data.participants
+                      && resource.data.senderId != request.auth.uid
+                      && request.resource.data.senderId == resource.data.senderId
+                      && request.resource.data.text == resource.data.text
+                      && request.resource.data.sentAt == resource.data.sentAt
+                      && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['deliveredAt', 'readAt'])
+                      && request.resource.data.readAt != null;
+
+        allow delete: if false;
+      }
+
+      match /typing/{userId} {
+        allow read: if signedIn()
+                    && request.auth.uid in
+                       get(/databases/$(database)/documents/serviceSessions/$(sessionId))
+                       .data.participants;
+
+        allow create, update: if signedIn()
+                              && request.auth.uid == userId
+                              && request.auth.uid in
+                                 get(/databases/$(database)/documents/serviceSessions/$(sessionId))
+                                 .data.participants
+                              && request.resource.data.userId == request.auth.uid
+                              && request.resource.data.isTyping is bool
+                              && request.resource.data.keys()
+                                 .hasOnly(['userId', 'isTyping', 'updatedAt']);
+
+        allow delete: if false;
       }
     }
   }
