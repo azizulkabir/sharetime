@@ -131,7 +131,44 @@ service cloud.firestore {
       allow read: if signedIn()
                   && request.auth.uid in resource.data.participants;
 
-      allow update, delete: if false;
+      allow update: if signedIn()
+                    && request.auth.uid in resource.data.participants
+                    && resource.data.serviceType == 'text'
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                       .hasOnly([
+                         'lastMessage',
+                         'lastMessageSenderId',
+                         'lastMessageAt',
+                         'updatedAt'
+                       ])
+                    && request.resource.data.lastMessageSenderId == request.auth.uid
+                    && request.resource.data.lastMessage is string
+                    && request.resource.data.lastMessage.size() > 0
+                    && request.resource.data.lastMessage.size() <= 4000;
+
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if signedIn()
+                    && request.auth.uid in
+                       get(/databases/$(database)/documents/serviceSessions/$(sessionId))
+                       .data.participants;
+
+        allow create: if signedIn()
+                      && request.auth.uid in
+                         get(/databases/$(database)/documents/serviceSessions/$(sessionId))
+                         .data.participants
+                      && get(/databases/$(database)/documents/serviceSessions/$(sessionId))
+                         .data.serviceType == 'text'
+                      && request.resource.data.senderId == request.auth.uid
+                      && request.resource.data.text is string
+                      && request.resource.data.text.size() > 0
+                      && request.resource.data.text.size() <= 4000
+                      && request.resource.data.keys()
+                         .hasOnly(['senderId', 'text', 'sentAt']);
+
+        allow update, delete: if false;
+      }
     }
   }
 }
