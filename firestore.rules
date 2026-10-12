@@ -205,24 +205,7 @@ service cloud.firestore {
         allow delete: if false;
       }
 
-      match /typing/{userId} {
-        allow read: if signedIn()
-                    && request.auth.uid in
-                       get(/databases/$(database)/documents/serviceSessions/$(sessionId))
-                       .data.participants;
-
-        allow create, update: if signedIn()
-                              && request.auth.uid == userId
-                              && request.auth.uid in
-                                 get(/databases/$(database)/documents/serviceSessions/$(sessionId))
-                                 .data.participants
-                              && request.resource.data.userId == request.auth.uid
-                              && request.resource.data.isTyping is bool
-                              && request.resource.data.keys()
-                                 .hasOnly(['userId', 'isTyping', 'updatedAt']);
-
-        allow delete: if false;
-      }
     }
   }
 }
+
