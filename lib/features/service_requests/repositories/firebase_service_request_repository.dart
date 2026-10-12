@@ -47,6 +47,30 @@ class FirebaseServiceRequestRepository {
     });
   }
 
+  Stream<List<IncomingServiceRequest>> watchMyRequests() {
+    final user = _auth.currentUser;
+    if (user == null) {
+      return Stream.value(const <IncomingServiceRequest>[]);
+    }
+
+    return _firestore
+        .collection('serviceRequests')
+        .where('requesterId', isEqualTo: user.uid)
+        .snapshots()
+        .map((snapshot) {
+      final requests =
+          snapshot.docs.map(IncomingServiceRequest.fromDocument).toList();
+
+      requests.sort((a, b) {
+        final aTime = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bTime = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bTime.compareTo(aTime);
+      });
+
+      return requests;
+    });
+  }
+
   Future<void> respondToRequest({
     required String requestId,
     required bool accept,
