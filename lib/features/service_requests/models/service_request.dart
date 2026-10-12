@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 enum ServiceType {
   text,
   audio,
@@ -61,5 +63,53 @@ class ProviderRateQuote {
   static double _toDouble(dynamic value) {
     if (value is num) return value.toDouble();
     return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+}
+
+
+class IncomingServiceRequest {
+  const IncomingServiceRequest({
+    required this.id,
+    required this.requesterId,
+    required this.requesterName,
+    required this.providerId,
+    required this.providerName,
+    required this.serviceType,
+    required this.ratePerMinute,
+    required this.status,
+    required this.createdAt,
+  });
+
+  final String id;
+  final String requesterId;
+  final String requesterName;
+  final String providerId;
+  final String providerName;
+  final ServiceType serviceType;
+  final double ratePerMinute;
+  final String status;
+  final DateTime? createdAt;
+
+  factory IncomingServiceRequest.fromDocument(
+    DocumentSnapshot<Map<String, dynamic>> document,
+  ) {
+    final data = document.data() ?? <String, dynamic>{};
+    final rawType = (data['serviceType'] as String?) ?? 'text';
+
+    return IncomingServiceRequest(
+      id: document.id,
+      requesterId: (data['requesterId'] as String?) ?? '',
+      requesterName:
+          (data['requesterName'] as String?) ?? 'ShareTime User',
+      providerId: (data['providerId'] as String?) ?? '',
+      providerName: (data['providerName'] as String?) ?? '',
+      serviceType: ServiceType.values.firstWhere(
+        (type) => type.key == rawType,
+        orElse: () => ServiceType.text,
+      ),
+      ratePerMinute: ProviderRateQuote._toDouble(data['ratePerMinute']),
+      status: (data['status'] as String?) ?? 'pending',
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
+    );
   }
 }
