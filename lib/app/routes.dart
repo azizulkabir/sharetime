@@ -7,4 +7,5 @@ class AppRoutes {
   static const String discover = '/discover';
   static const String rates = '/rates';
   static const String incomingRequests = '/incoming-requests';
+  static const String myRequests = '/my-requests';
 }
