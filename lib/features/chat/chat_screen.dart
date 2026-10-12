@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -20,19 +22,56 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final _repository = FirebaseChatRepository();
   final _controller = TextEditingController();
+  Timer? _typingTimer;
   bool _isSending = false;
+
+  String? get _currentUid => FirebaseAuth.instance.currentUser?.uid;
+
+  String get _otherUserId {
+    return _currentUid == widget.session.requesterId
+        ? widget.session.providerId
+        : widget.session.requesterId;
+  }
+
+  String get _otherName {
+    return _currentUid == widget.session.requesterId
+        ? widget.session.providerName
+        : widget.session.requesterName;
+  }
 
   @override
   void dispose() {
+    _typingTimer?.cancel();
+    _repository.setTyping(
+      sessionId: widget.session.id,
+      isTyping: false,
+    );
     _controller.dispose();
     super.dispose();
   }
 
-  String get _otherName {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    return uid == widget.session.requesterId
-        ? widget.session.providerName
-        : widget.session.requesterName;
+  void _onTextChanged(String value) {
+    _typingTimer?.cancel();
+
+    if (value.trim().isEmpty) {
+      _repository.setTyping(
+        sessionId: widget.session.id,
+        isTyping: false,
+      );
+      return;
+    }
+
+    _repository.setTyping(
+      sessionId: widget.session.id,
+      isTyping: true,
+    );
+
+    _typingTimer = Timer(const Duration(milliseconds: 1400), () {
+      _repository.setTyping(
+        sessionId: widget.session.id,
+        isTyping: false,
+      );
+    });
   }
 
   Future<void> _send() async {
@@ -63,6 +102,24 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  void _markReadIfNeeded(List<ChatMessage> messages) {
+    final uid = _currentUid;
+    if (uid == null) return;
+
+    final hasUnreadIncoming = messages.any(
+      (message) => message.senderId != uid && !message.isRead,
+    );
+    if (!hasUnreadIncoming) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _repository.markIncomingMessagesDeliveredAndRead(
+        sessionId: widget.session.id,
+        messages: messages,
+      );
+    });
+  }
+
   String _timeLabel(DateTime? time) {
     if (time == null) return '';
     final local = time.toLocal();
@@ -72,9 +129,31 @@ class _ChatScreenState extends State<ChatScreen> {
     return '$hour:$minute $period';
   }
 
+  Widget _deliveryIcon(ChatMessage message) {
+    if (message.isRead) {
+      return const Icon(
+        Icons.done_all_rounded,
+        size: 15,
+        color: Color(0xFF2563EB),
+      );
+    }
+    if (message.isDelivered) {
+      return const Icon(
+        Icons.done_all_rounded,
+        size: 15,
+        color: Color(0xFF64748B),
+      );
+    }
+    return const Icon(
+      Icons.done_rounded,
+      size: 15,
+      color: Color(0xFF64748B),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    final currentUid = _currentUid;
     final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -95,25 +174,38 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _otherName,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const Text(
-                    'Text service',
-                    style: TextStyle(
-                      color: Color(0xFF64748B),
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
+              child: StreamBuilder<bool>(
+                stream: _repository.watchOtherTyping(
+                  sessionId: widget.session.id,
+                  otherUserId: _otherUserId,
+                ),
+                builder: (context, snapshot) {
+                  final isTyping = snapshot.data == true;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _otherName,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        isTyping ? 'typing...' : 'Text service',
+                        style: TextStyle(
+                          color: isTyping
+                              ? colors.primary
+                              : const Color(0xFF64748B),
+                          fontSize: 11,
+                          fontWeight:
+                              isTyping ? FontWeight.w700 : FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ],
@@ -124,7 +216,8 @@ class _ChatScreenState extends State<ChatScreen> {
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Audio calling will be added in the WebRTC step.'),
+                  content:
+                      Text('Audio calling will be added in the WebRTC step.'),
                 ),
               );
             },
@@ -135,7 +228,8 @@ class _ChatScreenState extends State<ChatScreen> {
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Video calling will be added in the WebRTC step.'),
+                  content:
+                      Text('Video calling will be added in the WebRTC step.'),
                 ),
               );
             },
@@ -160,6 +254,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 }
 
                 final messages = snapshot.data!;
+                _markReadIfNeeded(messages);
+
                 if (messages.isEmpty) {
                   return const Center(
                     child: Padding(
@@ -217,12 +313,21 @@ class _ChatScreenState extends State<ChatScreen> {
                               ),
                             ),
                             const SizedBox(height: 3),
-                            Text(
-                              _timeLabel(message.sentAt),
-                              style: const TextStyle(
-                                color: Color(0xFF64748B),
-                                fontSize: 10,
-                              ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _timeLabel(message.sentAt),
+                                  style: const TextStyle(
+                                    color: Color(0xFF64748B),
+                                    fontSize: 10,
+                                  ),
+                                ),
+                                if (isMine) ...[
+                                  const SizedBox(width: 3),
+                                  _deliveryIcon(message),
+                                ],
+                              ],
                             ),
                           ],
                         ),
@@ -248,6 +353,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   Expanded(
                     child: TextField(
                       controller: _controller,
+                      onChanged: _onTextChanged,
                       minLines: 1,
                       maxLines: 5,
                       textInputAction: TextInputAction.newline,
