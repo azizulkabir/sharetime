@@ -349,6 +349,17 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         },
                       ),
+                      _QuickActionCard(
+                        icon: Icons.send_outlined,
+                        title: 'My requests',
+                        subtitle: 'Sent request status',
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.myRequests,
+                          );
+                        },
+                      ),
                       const _QuickActionCard(
                         icon: Icons.chat_bubble_outline_rounded,
                         title: 'Messages',
