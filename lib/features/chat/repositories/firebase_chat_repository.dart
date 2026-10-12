@@ -49,14 +49,18 @@ class FirebaseChatRepository {
     return _firestore
         .collection('serviceSessions')
         .doc(sessionId)
-        .collection('typing')
-        .doc(otherUserId)
         .snapshots()
         .map((snapshot) {
       final data = snapshot.data();
-      if (data == null || data['isTyping'] != true) return false;
-      final updatedAt = (data['updatedAt'] as Timestamp?)?.toDate();
+      if (data == null) return false;
+
+      final typingUserId = (data['typingUserId'] as String?) ?? '';
+      final isTyping = data['isTyping'] == true;
+      final updatedAt = (data['typingUpdatedAt'] as Timestamp?)?.toDate();
+
+      if (!isTyping || typingUserId != otherUserId) return false;
       if (updatedAt == null) return true;
+
       return DateTime.now().difference(updatedAt).inSeconds < 8;
     });
   }
@@ -68,22 +72,12 @@ class FirebaseChatRepository {
     final user = _auth.currentUser;
     if (user == null) return;
 
-    try {
-      await _firestore
-          .collection('serviceSessions')
-          .doc(sessionId)
-          .collection('typing')
-          .doc(user.uid)
-          .set({
-        'userId': user.uid,
-        'isTyping': isTyping,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-    } on FirebaseException catch (error) {
-      if (error.code != 'permission-denied') {
-        rethrow;
-      }
-    }
+    await _firestore.collection('serviceSessions').doc(sessionId).update({
+      'typingUserId': isTyping ? user.uid : '',
+      'isTyping': isTyping,
+      'typingUpdatedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   Future<void> sendMessage({
