@@ -80,11 +80,51 @@ class FirebaseServiceRequestRepository {
       throw StateError('No signed-in user.');
     }
 
-    await _firestore.collection('serviceRequests').doc(requestId).update({
-      'status': accept ? 'accepted' : 'declined',
+    final requestRef = _firestore.collection('serviceRequests').doc(requestId);
+    final requestSnapshot = await requestRef.get();
+    final requestData = requestSnapshot.data();
+
+    if (!requestSnapshot.exists || requestData == null) {
+      throw StateError('Service request not found.');
+    }
+
+    if (!accept) {
+      await requestRef.update({
+        'status': 'declined',
+        'respondedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return;
+    }
+
+    final sessionRef = _firestore.collection('serviceSessions').doc(requestId);
+    final batch = _firestore.batch();
+
+    batch.update(requestRef, {
+      'status': 'accepted',
       'respondedAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
+      'sessionId': requestId,
     });
+
+    batch.set(sessionRef, {
+      'requestId': requestId,
+      'requesterId': requestData['requesterId'],
+      'requesterName': requestData['requesterName'],
+      'providerId': requestData['providerId'],
+      'providerName': requestData['providerName'],
+      'participants': [
+        requestData['requesterId'],
+        requestData['providerId'],
+      ],
+      'serviceType': requestData['serviceType'],
+      'ratePerMinute': requestData['ratePerMinute'],
+      'status': 'ready',
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
   }
 
   Future<String> createRequest({
