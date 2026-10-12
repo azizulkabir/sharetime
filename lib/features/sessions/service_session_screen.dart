@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../service_requests/models/service_request.dart';
 import '../calls/audio_call_screen.dart';
+import '../calls/video_call_screen.dart';
 import '../chat/chat_screen.dart';
 import 'models/service_session.dart';
 import 'repositories/firebase_service_session_repository.dart';
@@ -167,21 +168,18 @@ class ServiceSessionScreen extends StatelessWidget {
                   ),
                 )
               else
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Text(
-                    session.serviceType == ServiceType.audio
-                        ? 'The audio calling engine will connect to this session in the WebRTC step.'
-                        : 'The video calling engine will connect to this session in the WebRTC step.',
-                    style: const TextStyle(
-                      color: Color(0xFF64748B),
-                      height: 1.4,
-                    ),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => VideoCallScreen(session: session),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.videocam_rounded),
+                    label: const Text('Open video call'),
                   ),
                 ),
             ],
