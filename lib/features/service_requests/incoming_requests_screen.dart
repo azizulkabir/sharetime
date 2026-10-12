@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../chat/chat_screen.dart';
+import '../calls/audio_call_screen.dart';
 import '../sessions/models/service_session.dart';
 import 'models/service_request.dart';
 import 'repositories/firebase_service_request_repository.dart';
@@ -43,7 +44,9 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> {
         ),
       );
 
-      if (accept && request.serviceType == ServiceType.text) {
+      if (accept &&
+          (request.serviceType == ServiceType.text ||
+              request.serviceType == ServiceType.audio)) {
         final session = ServiceSession(
           id: request.id,
           requestId: request.id,
@@ -61,7 +64,9 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> {
 
         await Navigator.of(context).push(
           MaterialPageRoute<void>(
-            builder: (_) => ChatScreen(session: session),
+            builder: (_) => request.serviceType == ServiceType.text
+                ? ChatScreen(session: session)
+                : AudioCallScreen(session: session),
           ),
         );
       }
