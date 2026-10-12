@@ -9,4 +9,5 @@ class AppRoutes {
   static const String incomingRequests = '/incoming-requests';
   static const String myRequests = '/my-requests';
   static const String mySessions = '/my-sessions';
+  static const String chats = '/chats';
 }
