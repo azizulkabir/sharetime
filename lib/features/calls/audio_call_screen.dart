@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../sessions/models/service_session.dart';
@@ -39,9 +40,11 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
   }
 
   String get _otherName {
-    final providerName = widget.session.providerName.trim();
-    final requesterName = widget.session.requesterName.trim();
-    return providerName.isNotEmpty ? providerName : requesterName;
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    final name = currentUid == widget.session.requesterId
+        ? widget.session.providerName
+        : widget.session.requesterName;
+    return name.trim();
   }
 
   String get _durationLabel {
