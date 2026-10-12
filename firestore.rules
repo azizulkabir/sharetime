@@ -159,19 +159,6 @@ service cloud.firestore {
                         && request.resource.data.lastMessageReadBy
                            .hasAll([request.auth.uid])
                       )
-                      ||
-                      (
-                        request.resource.data.diff(resource.data).affectedKeys()
-                           .hasOnly([
-                             'typingUserId',
-                             'isTyping',
-                             'typingUpdatedAt',
-                             'updatedAt'
-                           ])
-                        && request.resource.data.typingUserId
-                           in ['', request.auth.uid]
-                        && request.resource.data.isTyping is bool
-                      )
                     );
 
       allow delete: if false;
