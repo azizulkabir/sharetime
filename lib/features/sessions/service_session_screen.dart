@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../service_requests/models/service_request.dart';
+import '../chat/chat_screen.dart';
 import 'models/service_session.dart';
 import 'repositories/firebase_service_session_repository.dart';
 
@@ -134,25 +135,39 @@ class ServiceSessionScreen extends StatelessWidget {
                 icon: Icons.tag_rounded,
               ),
               const SizedBox(height: 18),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Text(
-                  session.serviceType == ServiceType.text
-                      ? 'The chat engine will connect to this session in the next messaging step.'
-                      : session.serviceType == ServiceType.audio
-                          ? 'The audio calling engine will connect to this session in the WebRTC step.'
-                          : 'The video calling engine will connect to this session in the WebRTC step.',
-                  style: const TextStyle(
-                    color: Color(0xFF64748B),
-                    height: 1.4,
+              if (session.serviceType == ServiceType.text)
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => ChatScreen(session: session),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.chat_bubble_outline_rounded),
+                    label: const Text('Open chat'),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Text(
+                    session.serviceType == ServiceType.audio
+                        ? 'The audio calling engine will connect to this session in the WebRTC step.'
+                        : 'The video calling engine will connect to this session in the WebRTC step.',
+                    style: const TextStyle(
+                      color: Color(0xFF64748B),
+                      height: 1.4,
+                    ),
                   ),
                 ),
-              ),
             ],
           );
         },
