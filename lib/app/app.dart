@@ -9,6 +9,7 @@ import '../features/profile/profile_screen.dart';
 import '../features/rates/rates_screen.dart';
 import '../features/service_requests/incoming_requests_screen.dart';
 import '../features/service_requests/my_requests_screen.dart';
+import '../features/sessions/my_sessions_screen.dart';
 import '../features/splash/splash_screen.dart';
 import 'routes.dart';
 
@@ -32,6 +33,7 @@ class ShareTimeApp extends StatelessWidget {
         AppRoutes.rates: (_) => const RatesScreen(),
         AppRoutes.incomingRequests: (_) => const IncomingRequestsScreen(),
         AppRoutes.myRequests: (_) => const MyRequestsScreen(),
+        AppRoutes.mySessions: (_) => const MySessionsScreen(),
       },
     );
   }
