@@ -32,6 +32,13 @@ class ChatsScreen extends StatelessWidget {
         : session.requesterName;
   }
 
+  bool _hasUnread(ServiceSession session) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || session.lastMessage.isEmpty) return false;
+    if (session.lastMessageSenderId == uid) return false;
+    return !session.lastMessageReadBy.contains(uid);
+  }
+
   @override
   Widget build(BuildContext context) {
     final repository = FirebaseChatRepository();
@@ -104,6 +111,7 @@ class ChatsScreen extends StatelessWidget {
               final preview = session.lastMessage.trim().isEmpty
                   ? 'Text service ready'
                   : session.lastMessage;
+              final hasUnread = _hasUnread(session);
 
               return ListTile(
                 contentPadding:
@@ -122,20 +130,50 @@ class ChatsScreen extends StatelessWidget {
                 ),
                 title: Text(
                   name,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
+                  style: TextStyle(
+                    fontWeight:
+                        hasUnread ? FontWeight.w900 : FontWeight.w800,
+                  ),
                 ),
                 subtitle: Text(
                   preview,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Color(0xFF64748B)),
-                ),
-                trailing: Text(
-                  _timeLabel(session.lastMessageAt ?? session.createdAt),
-                  style: const TextStyle(
-                    color: Color(0xFF94A3B8),
-                    fontSize: 12,
+                  style: TextStyle(
+                    color: hasUnread
+                        ? const Color(0xFF0F172A)
+                        : const Color(0xFF64748B),
+                    fontWeight:
+                        hasUnread ? FontWeight.w700 : FontWeight.w400,
                   ),
+                ),
+                trailing: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      _timeLabel(session.lastMessageAt ?? session.createdAt),
+                      style: TextStyle(
+                        color: hasUnread
+                            ? colors.primary
+                            : const Color(0xFF94A3B8),
+                        fontSize: 12,
+                        fontWeight:
+                            hasUnread ? FontWeight.w700 : FontWeight.w400,
+                      ),
+                    ),
+                    if (hasUnread) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: colors.primary,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 onTap: () {
                   Navigator.of(context).push(
