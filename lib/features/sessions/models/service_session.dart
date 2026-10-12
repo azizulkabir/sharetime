@@ -14,6 +14,8 @@ class ServiceSession {
     required this.ratePerMinute,
     required this.status,
     required this.createdAt,
+    required this.lastMessage,
+    required this.lastMessageAt,
   });
 
   final String id;
@@ -26,6 +28,8 @@ class ServiceSession {
   final double ratePerMinute;
   final String status;
   final DateTime? createdAt;
+  final String lastMessage;
+  final DateTime? lastMessageAt;
 
   factory ServiceSession.fromDocument(
     DocumentSnapshot<Map<String, dynamic>> document,
@@ -48,6 +52,8 @@ class ServiceSession {
       ratePerMinute: _toDouble(data['ratePerMinute']),
       status: (data['status'] as String?) ?? 'ready',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
+      lastMessage: (data['lastMessage'] as String?) ?? '',
+      lastMessageAt: (data['lastMessageAt'] as Timestamp?)?.toDate(),
     );
   }
 
