@@ -68,16 +68,22 @@ class FirebaseChatRepository {
     final user = _auth.currentUser;
     if (user == null) return;
 
-    await _firestore
-        .collection('serviceSessions')
-        .doc(sessionId)
-        .collection('typing')
-        .doc(user.uid)
-        .set({
-      'userId': user.uid,
-      'isTyping': isTyping,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    try {
+      await _firestore
+          .collection('serviceSessions')
+          .doc(sessionId)
+          .collection('typing')
+          .doc(user.uid)
+          .set({
+        'userId': user.uid,
+        'isTyping': isTyping,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } on FirebaseException catch (error) {
+      if (error.code != 'permission-denied') {
+        rethrow;
+      }
+    }
   }
 
   Future<void> sendMessage({
