@@ -131,6 +131,9 @@ class FirebaseServiceRequestRepository {
       'serviceType': requestData['serviceType'],
       'ratePerMinute': requestData['ratePerMinute'],
       'status': 'ready',
+      'lastMessage': '',
+      'lastMessageSenderId': '',
+      'lastMessageReadBy': <String>[],
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
