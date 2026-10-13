@@ -21,6 +21,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final _repository = FirebaseChatRepository();
   final _controller = TextEditingController();
   bool _isSending = false;
+  bool _isMarkingRead = false;
 
   String? get _currentUid => FirebaseAuth.instance.currentUser?.uid;
 
@@ -66,19 +67,27 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _markReadIfNeeded(List<ChatMessage> messages) {
     final uid = _currentUid;
-    if (uid == null) return;
+    if (uid == null || _isMarkingRead) return;
 
     final hasUnreadIncoming = messages.any(
       (message) => message.senderId != uid && !message.isRead,
     );
     if (!hasUnreadIncoming) return;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _repository.markIncomingMessagesDeliveredAndRead(
-        sessionId: widget.session.id,
-        messages: messages,
-      );
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || _isMarkingRead) return;
+
+      _isMarkingRead = true;
+      try {
+        await _repository.markIncomingMessagesDeliveredAndRead(
+          sessionId: widget.session.id,
+          messages: messages,
+        );
+      } catch (error) {
+        debugPrint('Could not mark messages as read: $error');
+      } finally {
+        _isMarkingRead = false;
+      }
     });
   }
 
@@ -99,13 +108,7 @@ class _ChatScreenState extends State<ChatScreen> {
         color: Color(0xFF2563EB),
       );
     }
-    if (message.isDelivered) {
-      return const Icon(
-        Icons.done_all_rounded,
-        size: 15,
-        color: Color(0xFF64748B),
-      );
-    }
+
     return const Icon(
       Icons.done_rounded,
       size: 15,
