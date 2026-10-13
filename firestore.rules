@@ -133,31 +133,50 @@ service cloud.firestore {
 
       allow update: if signedIn()
                     && request.auth.uid in resource.data.participants
-                    && resource.data.serviceType == 'text'
                     && (
                       (
-                        request.resource.data.diff(resource.data).affectedKeys()
-                           .hasOnly([
-                             'lastMessage',
-                             'lastMessageSenderId',
-                             'lastMessageAt',
-                             'lastMessageReadBy',
-                             'updatedAt'
-                           ])
-                        && request.resource.data.lastMessageSenderId == request.auth.uid
-                        && request.resource.data.lastMessage is string
-                        && request.resource.data.lastMessage.size() > 0
-                        && request.resource.data.lastMessage.size() <= 4000
-                        && request.resource.data.lastMessageReadBy == [request.auth.uid]
+                        resource.data.serviceType == 'text'
+                        && (
+                          (
+                            request.resource.data.diff(resource.data).affectedKeys()
+                               .hasOnly([
+                                 'lastMessage',
+                                 'lastMessageSenderId',
+                                 'lastMessageAt',
+                                 'lastMessageReadBy',
+                                 'updatedAt'
+                               ])
+                            && request.resource.data.lastMessageSenderId == request.auth.uid
+                            && request.resource.data.lastMessage is string
+                            && request.resource.data.lastMessage.size() > 0
+                            && request.resource.data.lastMessage.size() <= 4000
+                            && request.resource.data.lastMessageReadBy == [request.auth.uid]
+                          )
+                          ||
+                          (
+                            request.resource.data.diff(resource.data).affectedKeys()
+                               .hasOnly(['lastMessageReadBy', 'updatedAt'])
+                            && request.resource.data.lastMessageReadBy
+                               .hasAll(resource.data.get('lastMessageReadBy', []))
+                            && request.resource.data.lastMessageReadBy
+                               .hasAll([request.auth.uid])
+                          )
+                        )
                       )
                       ||
                       (
-                        request.resource.data.diff(resource.data).affectedKeys()
-                           .hasOnly(['lastMessageReadBy', 'updatedAt'])
-                        && request.resource.data.lastMessageReadBy
-                           .hasAll(resource.data.get('lastMessageReadBy', []))
-                        && request.resource.data.lastMessageReadBy
-                           .hasAll([request.auth.uid])
+                        resource.data.serviceType in ['audio', 'video']
+                        && resource.data.get('callStatus', 'active') == 'active'
+                        && request.resource.data.callStatus == 'ended'
+                        && request.resource.data.callEndedBy == request.auth.uid
+                        && request.resource.data.callEndedAt != null
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                           .hasOnly([
+                             'callStatus',
+                             'callEndedBy',
+                             'callEndedAt',
+                             'updatedAt'
+                           ])
                       )
                     );
 
