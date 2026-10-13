@@ -131,6 +131,12 @@ class FirebaseServiceRequestRepository {
       'serviceType': requestData['serviceType'],
       'ratePerMinute': requestData['ratePerMinute'],
       'status': 'ready',
+      if (requestData['serviceType'] == 'audio' ||
+          requestData['serviceType'] == 'video') ...{
+        'callStatus': 'active',
+        'callEndedBy': '',
+        'callEndedAt': null,
+      },
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
