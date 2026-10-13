@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../sessions/models/service_session.dart';
+import '../sessions/repositories/firebase_service_session_repository.dart';
 
 class VideoCallScreen extends StatefulWidget {
   const VideoCallScreen({
@@ -25,10 +26,24 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   bool _speakerOn = true;
   bool _frontCamera = true;
   bool _ended = false;
+  bool _endingCall = false;
+  late final FirebaseServiceSessionRepository _sessionRepository;
+  StreamSubscription<ServiceSession?>? _sessionSubscription;
 
   @override
   void initState() {
     super.initState();
+    _sessionRepository = FirebaseServiceSessionRepository();
+    _sessionSubscription =
+        _sessionRepository.watchSession(widget.session.id).listen((session) {
+      if (!mounted || session == null || !session.isCallEnded || _ended) return;
+      setState(() => _ended = true);
+      _timer?.cancel();
+      Future<void>.delayed(const Duration(milliseconds: 350), () {
+        if (mounted) Navigator.of(context).pop();
+      });
+    });
+
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted || _ended) return;
       setState(() => _elapsedSeconds++);
@@ -38,6 +53,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _sessionSubscription?.cancel();
     super.dispose();
   }
 
@@ -62,13 +78,19 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         : rate.toStringAsFixed(2);
   }
 
-  void _endCall() {
-    if (_ended) return;
-    setState(() => _ended = true);
-    _timer?.cancel();
-    Future<void>.delayed(const Duration(milliseconds: 350), () {
-      if (mounted) Navigator.of(context).pop();
-    });
+  Future<void> _endCall() async {
+    if (_ended || _endingCall) return;
+
+    _endingCall = true;
+    try {
+      await _sessionRepository.endCall(widget.session.id);
+    } catch (_) {
+      if (!mounted) return;
+      _endingCall = false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not end the call.')),
+      );
+    }
   }
 
   @override
@@ -116,7 +138,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
               child: Row(
                 children: [
                   IconButton.filledTonal(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: _endingCall ? null : _endCall,
                     icon: const Icon(Icons.keyboard_arrow_down_rounded),
                   ),
                   const SizedBox(width: 10),
@@ -233,7 +255,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                       icon: Icons.call_end_rounded,
                       label: 'End',
                       destructive: true,
-                      onPressed: _endCall,
+                      onPressed: _endingCall ? () {} : _endCall,
                     ),
                   ],
                 ),
