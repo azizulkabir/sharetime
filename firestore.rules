@@ -224,6 +224,30 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      match /webrtc/{signalId} {
+        allow read, create, update: if signedIn()
+                                    && request.auth.uid in
+                                       get(/databases/$(database)/documents/serviceSessions/$(sessionId))
+                                       .data.participants;
+        allow delete: if false;
+
+        match /requesterCandidates/{candidateId} {
+          allow read, create: if signedIn()
+                              && request.auth.uid in
+                                 get(/databases/$(database)/documents/serviceSessions/$(sessionId))
+                                 .data.participants;
+          allow update, delete: if false;
+        }
+
+        match /providerCandidates/{candidateId} {
+          allow read, create: if signedIn()
+                              && request.auth.uid in
+                                 get(/databases/$(database)/documents/serviceSessions/$(sessionId))
+                                 .data.participants;
+          allow update, delete: if false;
+        }
+      }
+
     }
   }
 }
