@@ -68,5 +68,7 @@
 	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>ShareTime uses your photo library so you can choose a profile picture.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>ShareTime uses your microphone for live audio calls.</string>
 </dict>
 </plist>
