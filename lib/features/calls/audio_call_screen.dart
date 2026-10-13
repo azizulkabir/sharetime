@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../sessions/models/service_session.dart';
 import '../sessions/repositories/firebase_service_session_repository.dart';
+import 'services/webrtc_call_service.dart';
 
 class AudioCallScreen extends StatefulWidget {
   const AudioCallScreen({
@@ -26,12 +28,16 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
   bool _ended = false;
   bool _endingCall = false;
   late final FirebaseServiceSessionRepository _sessionRepository;
+  late final WebRtcCallService _webRtcService;
   StreamSubscription<ServiceSession?>? _sessionSubscription;
+  String _connectionLabel = 'Connecting...';
+  bool _liveAudioStarted = false;
 
   @override
   void initState() {
     super.initState();
     _sessionRepository = FirebaseServiceSessionRepository();
+    _webRtcService = WebRtcCallService();
     _sessionSubscription =
         _sessionRepository.watchSession(widget.session.id).listen((session) {
       if (!mounted || session == null || !session.isCallEnded || _ended) return;
@@ -41,6 +47,8 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
         if (mounted) Navigator.of(context).pop();
       });
     });
+
+    _startLiveAudio();
 
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted || _ended) return;
@@ -52,7 +60,52 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
   void dispose() {
     _timer?.cancel();
     _sessionSubscription?.cancel();
+    unawaited(_webRtcService.dispose());
     super.dispose();
+  }
+
+  Future<void> _startLiveAudio() async {
+    if (_liveAudioStarted) return;
+    _liveAudioStarted = true;
+
+    try {
+      await _webRtcService.startAudioCall(
+        session: widget.session,
+        onConnectionState: (state) {
+          if (!mounted) return;
+
+          setState(() {
+            switch (state) {
+              case RTCPeerConnectionState.RTCPeerConnectionStateConnected:
+                _connectionLabel = 'Live audio';
+                break;
+              case RTCPeerConnectionState.RTCPeerConnectionStateConnecting:
+                _connectionLabel = 'Connecting...';
+                break;
+              case RTCPeerConnectionState.RTCPeerConnectionStateDisconnected:
+                _connectionLabel = 'Reconnecting...';
+                break;
+              case RTCPeerConnectionState.RTCPeerConnectionStateFailed:
+                _connectionLabel = 'Connection failed';
+                break;
+              case RTCPeerConnectionState.RTCPeerConnectionStateClosed:
+                _connectionLabel = 'Call ended';
+                break;
+              default:
+                _connectionLabel = 'Connecting...';
+            }
+          });
+        },
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _connectionLabel = 'Audio connection unavailable';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Live audio could not start: $error')),
+      );
+    }
   }
 
   String get _otherName {
@@ -143,7 +196,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                _ended ? 'Call ended' : 'Audio call • $_durationLabel',
+                _ended ? 'Call ended' : '$_connectionLabel • $_durationLabel',
                 style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 15,
@@ -166,7 +219,11 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
                     icon: _muted ? Icons.mic_off_rounded : Icons.mic_rounded,
                     label: _muted ? 'Unmute' : 'Mute',
                     active: _muted,
-                    onPressed: () => setState(() => _muted = !_muted),
+                    onPressed: () async {
+                      final muted = !_muted;
+                      setState(() => _muted = muted);
+                      await _webRtcService.setMuted(muted);
+                    },
                   ),
                   _CallAction(
                     icon: _speakerOn
@@ -174,7 +231,11 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
                         : Icons.volume_down_rounded,
                     label: 'Speaker',
                     active: _speakerOn,
-                    onPressed: () => setState(() => _speakerOn = !_speakerOn),
+                    onPressed: () async {
+                      final speakerOn = !_speakerOn;
+                      setState(() => _speakerOn = speakerOn);
+                      await _webRtcService.setSpeakerphone(speakerOn);
+                    },
                   ),
                   _CallAction(
                     icon: Icons.call_end_rounded,
@@ -186,7 +247,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
               ),
               const SizedBox(height: 28),
               const Text(
-                'This is the Step 11 call UI foundation. Live audio will be connected in the WebRTC step.',
+                'Live audio is connected with WebRTC. A TURN server will be added later for stronger connectivity across difficult networks.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white38,
