@@ -24,6 +24,20 @@ class FirebaseServiceSessionRepository {
     });
   }
 
+  Future<void> endCall(String sessionId) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw StateError('No signed-in user.');
+    }
+
+    await _firestore.collection('serviceSessions').doc(sessionId).update({
+      'callStatus': 'ended',
+      'callEndedBy': user.uid,
+      'callEndedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   Stream<List<ServiceSession>> watchMySessions() {
     final user = _auth.currentUser;
     if (user == null) {
