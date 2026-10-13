@@ -18,6 +18,9 @@ class ServiceSession {
     this.lastMessageAt,
     this.lastMessageSenderId = '',
     this.lastMessageReadBy = const <String>[],
+    this.callStatus = 'active',
+    this.callEndedBy = '',
+    this.callEndedAt,
   });
 
   final String id;
@@ -34,6 +37,11 @@ class ServiceSession {
   final DateTime? lastMessageAt;
   final String lastMessageSenderId;
   final List<String> lastMessageReadBy;
+  final String callStatus;
+  final String callEndedBy;
+  final DateTime? callEndedAt;
+
+  bool get isCallEnded => callStatus == 'ended';
 
   factory ServiceSession.fromDocument(
     DocumentSnapshot<Map<String, dynamic>> document,
@@ -62,6 +70,9 @@ class ServiceSession {
       lastMessageReadBy: List<String>.from(
         (data['lastMessageReadBy'] as List?) ?? const <String>[],
       ),
+      callStatus: (data['callStatus'] as String?) ?? 'active',
+      callEndedBy: (data['callEndedBy'] as String?) ?? '',
+      callEndedAt: (data['callEndedAt'] as Timestamp?)?.toDate(),
     );
   }
 
