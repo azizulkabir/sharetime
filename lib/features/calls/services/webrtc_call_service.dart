@@ -23,6 +23,7 @@ class WebRtcCallService {
 
   bool _remoteDescriptionSet = false;
   bool _disposed = false;
+  bool _videoEnabled = false;
 
   static const _iceServers = <Map<String, dynamic>>[
     <String, dynamic>{'urls': 'stun:stun.l.google.com:19302'},
@@ -31,6 +32,35 @@ class WebRtcCallService {
   Future<void> startAudioCall({
     required ServiceSession session,
     required void Function(RTCPeerConnectionState state) onConnectionState,
+  }) {
+    return _startCall(
+      session: session,
+      video: false,
+      onConnectionState: onConnectionState,
+    );
+  }
+
+  Future<void> startVideoCall({
+    required ServiceSession session,
+    required void Function(RTCPeerConnectionState state) onConnectionState,
+    required void Function(MediaStream stream) onLocalStream,
+    required void Function(MediaStream stream) onRemoteStream,
+  }) {
+    return _startCall(
+      session: session,
+      video: true,
+      onConnectionState: onConnectionState,
+      onLocalStream: onLocalStream,
+      onRemoteStream: onRemoteStream,
+    );
+  }
+
+  Future<void> _startCall({
+    required ServiceSession session,
+    required bool video,
+    required void Function(RTCPeerConnectionState state) onConnectionState,
+    void Function(MediaStream stream)? onLocalStream,
+    void Function(MediaStream stream)? onRemoteStream,
   }) async {
     final user = _auth.currentUser;
     if (user == null) {
@@ -41,6 +71,8 @@ class WebRtcCallService {
     if (!isRequester && user.uid != session.providerId) {
       throw StateError('User is not part of this call.');
     }
+
+    _videoEnabled = video;
 
     final signalRef = _firestore
         .collection('serviceSessions')
@@ -55,14 +87,29 @@ class WebRtcCallService {
 
     _peerConnection!.onConnectionState = onConnectionState;
 
+    _peerConnection!.onTrack = (event) {
+      if (event.streams.isNotEmpty) {
+        onRemoteStream?.call(event.streams.first);
+      }
+    };
+
     _localStream = await navigator.mediaDevices.getUserMedia(
       <String, dynamic>{
         'audio': true,
-        'video': false,
+        'video': video
+            ? <String, dynamic>{
+                'facingMode': 'user',
+                'width': <String, dynamic>{'ideal': 720},
+                'height': <String, dynamic>{'ideal': 1280},
+                'frameRate': <String, dynamic>{'ideal': 24},
+              }
+            : false,
       },
     );
 
-    for (final track in _localStream!.getAudioTracks()) {
+    onLocalStream?.call(_localStream!);
+
+    for (final track in _localStream!.getTracks()) {
       await _peerConnection!.addTrack(track, _localStream!);
     }
 
@@ -120,7 +167,7 @@ class WebRtcCallService {
     final peer = _peerConnection!;
     final offer = await peer.createOffer(<String, dynamic>{
       'offerToReceiveAudio': true,
-      'offerToReceiveVideo': false,
+      'offerToReceiveVideo': _videoEnabled,
     });
     await peer.setLocalDescription(offer);
 
@@ -169,7 +216,7 @@ class WebRtcCallService {
 
       final answer = await peer.createAnswer(<String, dynamic>{
         'offerToReceiveAudio': true,
-        'offerToReceiveVideo': false,
+        'offerToReceiveVideo': _videoEnabled,
       });
       await peer.setLocalDescription(answer);
 
@@ -216,6 +263,21 @@ class WebRtcCallService {
     for (final track in stream.getAudioTracks()) {
       track.enabled = !muted;
     }
+  }
+
+  Future<void> setCameraEnabled(bool enabled) async {
+    final stream = _localStream;
+    if (stream == null) return;
+
+    for (final track in stream.getVideoTracks()) {
+      track.enabled = enabled;
+    }
+  }
+
+  Future<void> switchCamera() async {
+    final stream = _localStream;
+    if (stream == null || stream.getVideoTracks().isEmpty) return;
+    await Helper.switchCamera(stream.getVideoTracks().first);
   }
 
   Future<void> setSpeakerphone(bool enabled) async {
