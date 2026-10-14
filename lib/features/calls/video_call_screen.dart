@@ -181,7 +181,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     final colors = Theme.of(context).colorScheme;
     final initial = _otherName.isEmpty ? 'S' : _otherName[0].toUpperCase();
     final remoteReady =
-        _renderersReady && _remoteRenderer.srcObject != null && !_cameraOff;
+        _renderersReady && _remoteRenderer.srcObject != null;
 
     return Scaffold(
       backgroundColor: const Color(0xFF020617),
