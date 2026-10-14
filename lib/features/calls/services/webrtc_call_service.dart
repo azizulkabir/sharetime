@@ -99,9 +99,9 @@ class WebRtcCallService {
         'video': video
             ? <String, dynamic>{
                 'facingMode': 'user',
-                'width': <String, dynamic>{'ideal': 720},
-                'height': <String, dynamic>{'ideal': 1280},
-                'frameRate': <String, dynamic>{'ideal': 24},
+                'width': <String, dynamic>{'ideal': 640},
+                'height': <String, dynamic>{'ideal': 480},
+                'frameRate': <String, dynamic>{'ideal': 15},
               }
             : false,
       },
