@@ -24,10 +24,25 @@ class WebRtcCallService {
   bool _remoteDescriptionSet = false;
   bool _disposed = false;
   bool _videoEnabled = false;
+  final List<RTCIceCandidate> _pendingRemoteCandidates = <RTCIceCandidate>[];
 
   static const _iceServers = <Map<String, dynamic>>[
-    <String, dynamic>{'urls': 'stun:stun.l.google.com:19302'},
+    <String, dynamic>{
+      'urls': <String>[
+        'stun:stun.l.google.com:19302',
+        'stun:stun1.l.google.com:19302',
+        'stun:stun.cloudflare.com:3478',
+      ],
+    },
   ];
+
+  static const _peerConfiguration = <String, dynamic>{
+    'iceServers': _iceServers,
+    'iceTransportPolicy': 'all',
+    'bundlePolicy': 'max-bundle',
+    'rtcpMuxPolicy': 'require',
+    'iceCandidatePoolSize': 4,
+  };
 
   Future<void> startAudioCall({
     required ServiceSession session,
@@ -81,7 +96,7 @@ class WebRtcCallService {
         .doc('signaling');
 
     _peerConnection = await createPeerConnection(
-      <String, dynamic>{'iceServers': _iceServers},
+      _peerConfiguration,
       <String, dynamic>{},
     );
 
@@ -133,23 +148,29 @@ class WebRtcCallService {
 
     _candidateSub = remoteCandidates.snapshots().listen((snapshot) async {
       final peer = _peerConnection;
-      if (peer == null || !_remoteDescriptionSet) return;
+      if (peer == null) return;
 
       for (final change in snapshot.docChanges) {
         if (change.type != DocumentChangeType.added) continue;
         final data = change.doc.data();
         if (data == null) continue;
 
+        final candidate = RTCIceCandidate(
+          data['candidate'] as String?,
+          data['sdpMid'] as String?,
+          (data['sdpMLineIndex'] as num?)?.toInt(),
+        );
+
+        if (!_remoteDescriptionSet) {
+          _pendingRemoteCandidates.add(candidate);
+          continue;
+        }
+
         try {
-          await peer.addCandidate(
-            RTCIceCandidate(
-              data['candidate'] as String?,
-              data['sdpMid'] as String?,
-              (data['sdpMLineIndex'] as num?)?.toInt(),
-            ),
-          );
+          await peer.addCandidate(candidate);
         } catch (_) {
-          // Candidate can arrive slightly before the remote description is ready.
+          // Ignore a duplicate/late candidate; existing candidates are replayed
+          // once the remote description is ready.
         }
       }
     });
@@ -192,6 +213,7 @@ class WebRtcCallService {
 
       await peer.setRemoteDescription(RTCSessionDescription(sdp, type));
       _remoteDescriptionSet = true;
+      await _flushPendingRemoteCandidates();
       await _addExistingRemoteCandidates(signalRef, 'providerCandidates');
     });
   }
@@ -213,6 +235,7 @@ class WebRtcCallService {
 
       await peer.setRemoteDescription(RTCSessionDescription(sdp, type));
       _remoteDescriptionSet = true;
+      await _flushPendingRemoteCandidates();
 
       final answer = await peer.createAnswer(<String, dynamic>{
         'offerToReceiveAudio': true,
@@ -230,6 +253,22 @@ class WebRtcCallService {
 
       await _addExistingRemoteCandidates(signalRef, 'requesterCandidates');
     });
+  }
+
+  Future<void> _flushPendingRemoteCandidates() async {
+    final peer = _peerConnection;
+    if (peer == null || !_remoteDescriptionSet) return;
+
+    final pending = List<RTCIceCandidate>.from(_pendingRemoteCandidates);
+    _pendingRemoteCandidates.clear();
+
+    for (final candidate in pending) {
+      try {
+        await peer.addCandidate(candidate);
+      } catch (_) {
+        // Ignore duplicate/late candidates.
+      }
+    }
   }
 
   Future<void> _addExistingRemoteCandidates(
