@@ -16,9 +16,9 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _fullNameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
 
   final CategoryRepository _categoryRepository = MockCategoryRepository();
@@ -40,9 +40,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
-    _fullNameController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _identifierController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -87,11 +87,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  bool _looksLikeEmail(String value) {
+    final trimmed = value.trim();
+    return trimmed.contains('@') && trimmed.contains('.');
+  }
+
+  bool _looksLikePhone(String value) {
+    final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
+    return digits.length >= 8;
+  }
+
+  Future<void> _showMobileRegistrationInfo() async {
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Mobile registration'),
+        content: const Text(
+          'The registration interface is ready for mobile-number accounts. '
+          'Secure mobile + password registration needs phone verification/SMS '
+          'backend before it can be enabled safely. Email registration is active now.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate() || _isSubmitting) return;
 
     final category = _selectedCategory;
     if (category == null) return;
+
+    final identifier = _identifierController.text.trim();
+    final fullName =
+        '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'
+            .trim();
+
+    if (!_looksLikeEmail(identifier)) {
+      await _showMobileRegistrationInfo();
+      return;
+    }
 
     setState(() {
       _isSubmitting = true;
@@ -99,9 +140,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       await _authRepository.registerWithEmailAndPassword(
-        fullName: _fullNameController.text,
-        email: _emailController.text,
-        phoneNumber: _phoneController.text,
+        fullName: fullName,
+        firstName: _firstNameController.text,
+        lastName: _lastNameController.text,
+        loginIdentifier: identifier,
+        email: identifier,
+        phoneNumber: '',
         password: _passwordController.text,
         categoryId: category.id,
         categoryName: category.name,
@@ -184,51 +228,59 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                     ),
                     const SizedBox(height: 28),
-                    TextFormField(
-                      controller: _fullNameController,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(
-                        labelText: 'Full name',
-                        prefixIcon: Icon(Icons.badge_outlined),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Enter your full name';
-                        }
-                        return null;
-                      },
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _firstNameController,
+                            textCapitalization: TextCapitalization.words,
+                            decoration: const InputDecoration(
+                              labelText: 'First Name',
+                              prefixIcon: Icon(Icons.person_outline_rounded),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Enter first name';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _lastNameController,
+                            textCapitalization: TextCapitalization.words,
+                            decoration: const InputDecoration(
+                              labelText: 'Last Name',
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Enter last name';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
-                      controller: _emailController,
+                      controller: _identifierController,
                       keyboardType: TextInputType.emailAddress,
-                      autofillHints: const [AutofillHints.email],
+                      autofillHints: const [AutofillHints.username],
                       decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.email_outlined),
+                        labelText: 'Email / Mobile Number',
+                        prefixIcon: Icon(Icons.alternate_email_rounded),
                       ),
                       validator: (value) {
-                        final email = value?.trim() ?? '';
-                        if (email.isEmpty) {
-                          return 'Enter your email';
+                        final identifier = value?.trim() ?? '';
+                        if (identifier.isEmpty) {
+                          return 'Enter your email or mobile number';
                         }
-                        if (!email.contains('@') || !email.contains('.')) {
-                          return 'Enter a valid email address';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'Phone number',
-                        prefixIcon: Icon(Icons.phone_outlined),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Enter your phone number';
+                        if (!_looksLikeEmail(identifier) &&
+                            !_looksLikePhone(identifier)) {
+                          return 'Enter a valid email or mobile number';
                         }
                         return null;
                       },
