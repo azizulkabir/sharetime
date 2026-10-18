@@ -16,6 +16,19 @@ class ProfileSaveException implements Exception {
 }
 
 class FirebaseAuthRepository implements AuthRepository {
+  static String _normalizePhone(String value) {
+    return value.replaceAll(RegExp(r'[^0-9]'), '');
+  }
+
+  static String _internalEmailForPhone(String phone) {
+    final normalized = _normalizePhone(phone);
+    return 'phone_$normalized@sharetime.internal';
+  }
+
+  static bool _looksLikeEmail(String value) {
+    final trimmed = value.trim();
+    return trimmed.contains('@') && trimmed.contains('.');
+  }
   FirebaseAuthRepository({
     FirebaseAuth? auth,
     FirebaseFirestore? firestore,
@@ -43,8 +56,16 @@ class FirebaseAuthRepository implements AuthRepository {
     required String categoryName,
     required bool requiresVerification,
   }) async {
+    final identifier = loginIdentifier.trim().isEmpty
+        ? (email.trim().isNotEmpty ? email.trim() : phoneNumber.trim())
+        : loginIdentifier.trim();
+    final isEmailLogin = _looksLikeEmail(identifier);
+    final authEmail = isEmailLogin
+        ? identifier
+        : _internalEmailForPhone(identifier);
+
     final credential = await _auth.createUserWithEmailAndPassword(
-      email: email.trim(),
+      email: authEmail,
       password: password,
     );
 
@@ -58,10 +79,9 @@ class FirebaseAuthRepository implements AuthRepository {
       fullName: fullName.trim(),
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      loginIdentifier:
-          loginIdentifier.trim().isEmpty ? email.trim() : loginIdentifier.trim(),
-      email: email.trim(),
-      phoneNumber: phoneNumber.trim(),
+      loginIdentifier: identifier,
+      email: isEmailLogin ? identifier : '',
+      phoneNumber: isEmailLogin ? phoneNumber.trim() : identifier,
       categoryId: categoryId,
       categoryName: categoryName,
       requiresVerification: requiresVerification,
@@ -111,12 +131,27 @@ class FirebaseAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<void> signInWithIdentifierAndPassword({
+    required String identifier,
+    required String password,
+  }) async {
+    final trimmed = identifier.trim();
+    final authEmail =
+        _looksLikeEmail(trimmed) ? trimmed : _internalEmailForPhone(trimmed);
+
+    await _auth.signInWithEmailAndPassword(
+      email: authEmail,
+      password: password,
+    );
+  }
+
+  @override
   Future<void> signInWithEmailAndPassword({
     required String email,
     required String password,
-  }) async {
-    await _auth.signInWithEmailAndPassword(
-      email: email.trim(),
+  }) {
+    return signInWithIdentifierAndPassword(
+      identifier: email,
       password: password,
     );
   }
