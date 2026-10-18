@@ -52,31 +52,6 @@ class _LoginScreenState extends State<LoginScreen> {
     return trimmed.contains('@') && trimmed.contains('.');
   }
 
-  String _normalizedPhone(String value) {
-    return value.replaceAll(RegExp(r'[^0-9+]'), '');
-  }
-
-  Future<void> _showMobileAuthInfo() async {
-    if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Mobile sign-in'),
-        content: const Text(
-          'The interface is ready for mobile-number sign-in. '
-          'Secure mobile + password authentication and SMS password reset '
-          'need a backend/OTP flow before they can be enabled safely.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate() || _isSubmitting) return;
 
@@ -87,17 +62,8 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final identifier = _identifierController.text.trim();
 
-      if (!_looksLikeEmail(identifier)) {
-        _normalizedPhone(identifier);
-        if (mounted) {
-          setState(() => _isSubmitting = false);
-        }
-        await _showMobileAuthInfo();
-        return;
-      }
-
-      await _authRepository.signInWithEmailAndPassword(
-        email: identifier,
+      await _authRepository.signInWithIdentifierAndPassword(
+        identifier: identifier,
         password: _passwordController.text,
       );
 
@@ -141,7 +107,14 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     if (!_looksLikeEmail(identifier)) {
-      await _showMobileAuthInfo();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'SMS password reset will be enabled when the SMS backend is connected.',
+          ),
+        ),
+      );
       return;
     }
 
