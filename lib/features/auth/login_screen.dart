@@ -13,7 +13,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
   final _authRepository = FirebaseAuthRepository();
 
@@ -23,7 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _identifierController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -47,6 +47,36 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  bool _looksLikeEmail(String value) {
+    final trimmed = value.trim();
+    return trimmed.contains('@') && trimmed.contains('.');
+  }
+
+  String _normalizedPhone(String value) {
+    return value.replaceAll(RegExp(r'[^0-9+]'), '');
+  }
+
+  Future<void> _showMobileAuthInfo() async {
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Mobile sign-in'),
+        content: const Text(
+          'The interface is ready for mobile-number sign-in. '
+          'Secure mobile + password authentication and SMS password reset '
+          'need a backend/OTP flow before they can be enabled safely.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate() || _isSubmitting) return;
 
@@ -55,8 +85,19 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
+      final identifier = _identifierController.text.trim();
+
+      if (!_looksLikeEmail(identifier)) {
+        _normalizedPhone(identifier);
+        if (mounted) {
+          setState(() => _isSubmitting = false);
+        }
+        await _showMobileAuthInfo();
+        return;
+      }
+
       await _authRepository.signInWithEmailAndPassword(
-        email: _emailController.text,
+        email: identifier,
         password: _passwordController.text,
       );
 
@@ -88,12 +129,19 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _resetPassword() async {
-    final email = _emailController.text.trim();
+    final identifier = _identifierController.text.trim();
 
-    if (email.isEmpty || _isResettingPassword) {
+    if (identifier.isEmpty || _isResettingPassword) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter your email address first.')),
+        const SnackBar(
+          content: Text('Enter your email or mobile number first.'),
+        ),
       );
+      return;
+    }
+
+    if (!_looksLikeEmail(identifier)) {
+      await _showMobileAuthInfo();
       return;
     }
 
@@ -102,7 +150,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await _authRepository.sendPasswordResetEmail(email);
+      await _authRepository.sendPasswordResetEmail(identifier);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -158,7 +206,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 28),
                     Text(
-                      'Welcome back',
+                      'Welcome to ShareTime',
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.w800,
                           ),
@@ -172,20 +220,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 32),
                     TextFormField(
-                      controller: _emailController,
+                      controller: _identifierController,
                       keyboardType: TextInputType.emailAddress,
-                      autofillHints: const [AutofillHints.email],
+                      autofillHints: const [AutofillHints.username],
                       decoration: const InputDecoration(
-                        labelText: 'Email',
+                        labelText: 'Email / Mobile Number',
                         prefixIcon: Icon(Icons.email_outlined),
                       ),
                       validator: (value) {
-                        final email = value?.trim() ?? '';
-                        if (email.isEmpty) {
-                          return 'Enter your email address';
-                        }
-                        if (!email.contains('@') || !email.contains('.')) {
-                          return 'Enter a valid email address';
+                        final identifier = value?.trim() ?? '';
+                        if (identifier.isEmpty) {
+                          return 'Enter your email or mobile number';
                         }
                         return null;
                       },
