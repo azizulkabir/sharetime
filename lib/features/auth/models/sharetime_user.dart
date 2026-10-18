@@ -2,6 +2,9 @@ class ShareTimeUser {
   const ShareTimeUser({
     required this.id,
     required this.fullName,
+    this.firstName = '',
+    this.lastName = '',
+    this.loginIdentifier = '',
     required this.email,
     required this.phoneNumber,
     required this.categoryId,
@@ -25,6 +28,9 @@ class ShareTimeUser {
 
   final String id;
   final String fullName;
+  final String firstName;
+  final String lastName;
+  final String loginIdentifier;
   final String email;
   final String phoneNumber;
   final String categoryId;
@@ -43,6 +49,9 @@ class ShareTimeUser {
   Map<String, dynamic> toMap() {
     return {
       'fullName': fullName,
+      'firstName': firstName,
+      'lastName': lastName,
+      'loginIdentifier': loginIdentifier,
       'email': email,
       'phoneNumber': phoneNumber,
       'categoryId': categoryId,
@@ -68,6 +77,9 @@ class ShareTimeUser {
     return ShareTimeUser(
       id: id,
       fullName: (data['fullName'] as String?) ?? '',
+      firstName: (data['firstName'] as String?) ?? '',
+      lastName: (data['lastName'] as String?) ?? '',
+      loginIdentifier: (data['loginIdentifier'] as String?) ?? '',
       email: (data['email'] as String?) ?? '',
       phoneNumber: (data['phoneNumber'] as String?) ?? '',
       categoryId: (data['categoryId'] as String?) ?? '',
