@@ -97,27 +97,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return digits.length >= 8;
   }
 
-  Future<void> _showMobileRegistrationInfo() async {
-    if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Mobile registration'),
-        content: const Text(
-          'The registration interface is ready for mobile-number accounts. '
-          'Secure mobile + password registration needs phone verification/SMS '
-          'backend before it can be enabled safely. Email registration is active now.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate() || _isSubmitting) return;
 
@@ -129,11 +108,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'
             .trim();
 
-    if (!_looksLikeEmail(identifier)) {
-      await _showMobileRegistrationInfo();
-      return;
-    }
-
     setState(() {
       _isSubmitting = true;
     });
@@ -144,8 +118,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         firstName: _firstNameController.text,
         lastName: _lastNameController.text,
         loginIdentifier: identifier,
-        email: identifier,
-        phoneNumber: '',
+        email: _looksLikeEmail(identifier) ? identifier : '',
+        phoneNumber: _looksLikeEmail(identifier) ? '' : identifier,
         password: _passwordController.text,
         categoryId: category.id,
         categoryName: category.name,
@@ -155,7 +129,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(
         context,
-        AppRoutes.home,
+        AppRoutes.profile,
         (route) => false,
       );
     } on FirebaseAuthException catch (error) {
