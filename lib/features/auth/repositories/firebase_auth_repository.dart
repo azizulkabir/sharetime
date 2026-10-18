@@ -33,6 +33,9 @@ class FirebaseAuthRepository implements AuthRepository {
   @override
   Future<ShareTimeUser> registerWithEmailAndPassword({
     required String fullName,
+    String firstName = '',
+    String lastName = '',
+    String loginIdentifier = '',
     required String email,
     required String phoneNumber,
     required String password,
@@ -53,6 +56,10 @@ class FirebaseAuthRepository implements AuthRepository {
     final user = ShareTimeUser(
       id: firebaseUser.uid,
       fullName: fullName.trim(),
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      loginIdentifier:
+          loginIdentifier.trim().isEmpty ? email.trim() : loginIdentifier.trim(),
       email: email.trim(),
       phoneNumber: phoneNumber.trim(),
       categoryId: categoryId,
