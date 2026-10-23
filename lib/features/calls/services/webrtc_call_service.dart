@@ -176,6 +176,12 @@ class WebRtcCallService {
 
     _videoEnabled = video;
 
+    if (Platform.isAndroid) {
+      await Helper.setAndroidAudioConfiguration(
+        AndroidAudioConfiguration.communication,
+      );
+    }
+
     final iceServers = await _loadIceServers(user, session.id);
 
     final signalRef = _firestore
@@ -191,7 +197,19 @@ class WebRtcCallService {
 
     _peerConnection!.onConnectionState = onConnectionState;
 
-    _peerConnection!.onTrack = (event) {
+    _peerConnection!.onTrack = (event) async {
+      if (event.track.kind == 'audio') {
+        event.track.enabled = true;
+        await Helper.setVolume(1.0, event.track);
+
+        if (Platform.isAndroid) {
+          await Helper.resumeAudioPlayout();
+          await Helper.regainAndroidAudioFocus();
+        }
+
+        debugPrint('ShareTime remote audio track enabled');
+      }
+
       if (event.streams.isNotEmpty) {
         onRemoteStream?.call(event.streams.first);
       }
@@ -212,6 +230,10 @@ class WebRtcCallService {
     );
 
     onLocalStream?.call(_localStream!);
+
+    for (final track in _localStream!.getAudioTracks()) {
+      track.enabled = true;
+    }
 
     for (final track in _localStream!.getTracks()) {
       await _peerConnection!.addTrack(track, _localStream!);
