@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -26,7 +28,10 @@ class WebRtcCallService {
   bool _videoEnabled = false;
   final List<RTCIceCandidate> _pendingRemoteCandidates = <RTCIceCandidate>[];
 
-  static const _iceServers = <Map<String, dynamic>>[
+  static const _turnApiUrl =
+      'https://0q04aw6q8b.execute-api.ap-southeast-2.amazonaws.com/default/sharetime-turn-credentials';
+
+  static const _fallbackIceServers = <Map<String, dynamic>>[
     <String, dynamic>{
       'urls': <String>[
         'stun:stun.l.google.com:19302',
@@ -36,13 +41,69 @@ class WebRtcCallService {
     },
   ];
 
-  static const _peerConfiguration = <String, dynamic>{
-    'iceServers': _iceServers,
-    'iceTransportPolicy': 'all',
-    'bundlePolicy': 'max-bundle',
-    'rtcpMuxPolicy': 'require',
-    'iceCandidatePoolSize': 4,
-  };
+  Future<List<Map<String, dynamic>>> _loadIceServers(
+    User user,
+    String sessionId,
+  ) async {
+    final idToken = await user.getIdToken(true);
+    if (idToken == null || idToken.isEmpty) {
+      return _fallbackIceServers;
+    }
+
+    final client = HttpClient();
+    try {
+      final request = await client.postUrl(Uri.parse(_turnApiUrl));
+      request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $idToken');
+      request.headers.contentType = ContentType.json;
+      request.write(jsonEncode(<String, dynamic>{
+        'clientId': '${user.uid}-$sessionId',
+      }));
+
+      final response = await request.close();
+      final body = await utf8.decodeStream(response);
+
+      if (response.statusCode != HttpStatus.ok) {
+        return _fallbackIceServers;
+      }
+
+      final decoded = jsonDecode(body);
+      if (decoded is! Map<String, dynamic>) {
+        return _fallbackIceServers;
+      }
+
+      final rawServers = decoded['iceServers'];
+      if (rawServers is! List) {
+        return _fallbackIceServers;
+      }
+
+      final servers = rawServers
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+
+      if (servers.isEmpty) {
+        return _fallbackIceServers;
+      }
+
+      return servers;
+    } catch (_) {
+      return _fallbackIceServers;
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  Map<String, dynamic> _peerConfiguration(
+    List<Map<String, dynamic>> iceServers,
+  ) {
+    return <String, dynamic>{
+      'iceServers': iceServers,
+      'iceTransportPolicy': 'all',
+      'bundlePolicy': 'max-bundle',
+      'rtcpMuxPolicy': 'require',
+      'iceCandidatePoolSize': 4,
+    };
+  }
 
   Future<void> startAudioCall({
     required ServiceSession session,
@@ -89,6 +150,8 @@ class WebRtcCallService {
 
     _videoEnabled = video;
 
+    final iceServers = await _loadIceServers(user, session.id);
+
     final signalRef = _firestore
         .collection('serviceSessions')
         .doc(session.id)
@@ -96,7 +159,7 @@ class WebRtcCallService {
         .doc('signaling');
 
     _peerConnection = await createPeerConnection(
-      _peerConfiguration,
+      _peerConfiguration(iceServers),
       <String, dynamic>{},
     );
 
