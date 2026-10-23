@@ -212,7 +212,14 @@ class WebRtcCallService {
 
     _localStream = await navigator.mediaDevices.getUserMedia(
       <String, dynamic>{
-        'audio': true,
+        'audio': <String, dynamic>{
+          'echoCancellation': true,
+          'googEchoCancellation': true,
+          'noiseSuppression': true,
+          'googNoiseSuppression': true,
+          'autoGainControl': true,
+          'channelCount': 1,
+        },
         'video': video
             ? <String, dynamic>{
                 'facingMode': 'user',
@@ -446,6 +453,11 @@ class WebRtcCallService {
 
     await _peerConnection?.close();
     await _peerConnection?.dispose();
+
+    if (Platform.isAndroid) {
+      await Helper.clearAndroidCommunicationDevice();
+    }
+
     _peerConnection = null;
     _localStream = null;
   }
