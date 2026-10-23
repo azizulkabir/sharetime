@@ -202,11 +202,6 @@ class WebRtcCallService {
         event.track.enabled = true;
         await Helper.setVolume(1.0, event.track);
 
-        if (Platform.isAndroid) {
-          await Helper.resumeAudioPlayout();
-          await Helper.regainAndroidAudioFocus();
-        }
-
         debugPrint('ShareTime remote audio track enabled');
       }
 
