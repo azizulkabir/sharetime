@@ -23,6 +23,7 @@ class WebRtcCallService {
   MediaStream? _localStream;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _signalSub;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _candidateSub;
+  Timer? _statsTimer;
 
   bool _remoteDescriptionSet = false;
   bool _disposed = false;
@@ -241,6 +242,8 @@ class WebRtcCallService {
       await _peerConnection!.addTrack(track, _localStream!);
     }
 
+    _startStatsLogging();
+
     final ownCandidates = signalRef.collection(
       isRequester ? 'requesterCandidates' : 'providerCandidates',
     );
@@ -408,6 +411,42 @@ class WebRtcCallService {
     }
   }
 
+  void _startStatsLogging() {
+    _statsTimer?.cancel();
+    _statsTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
+      final peer = _peerConnection;
+      if (peer == null || _disposed) return;
+
+      try {
+        final reports = await peer.getStats();
+        for (final report in reports) {
+          final values = report.values;
+          final type = report.type;
+
+          if (type == 'outbound-rtp' && values['kind'] == 'audio') {
+            debugPrint(
+              'ShareTime AUDIO OUT packetsSent=${values['packetsSent']} '
+              'bytesSent=${values['bytesSent']} '
+              'audioLevel=${values['audioLevel']} '
+              'totalAudioEnergy=${values['totalAudioEnergy']}',
+            );
+          }
+
+          if (type == 'inbound-rtp' && values['kind'] == 'audio') {
+            debugPrint(
+              'ShareTime AUDIO IN packetsReceived=${values['packetsReceived']} '
+              'bytesReceived=${values['bytesReceived']} '
+              'audioLevel=${values['audioLevel']} '
+              'totalAudioEnergy=${values['totalAudioEnergy']}',
+            );
+          }
+        }
+      } catch (error) {
+        debugPrint('ShareTime audio stats error: $error');
+      }
+    });
+  }
+
   Future<void> setMuted(bool muted) async {
     final stream = _localStream;
     if (stream == null) return;
@@ -442,6 +481,8 @@ class WebRtcCallService {
 
     await _signalSub?.cancel();
     await _candidateSub?.cancel();
+    _statsTimer?.cancel();
+    _statsTimer = null;
 
     final stream = _localStream;
     if (stream != null) {
