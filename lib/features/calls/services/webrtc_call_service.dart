@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../../sessions/models/service_session.dart';
@@ -31,23 +32,13 @@ class WebRtcCallService {
   static const _turnApiUrl =
       'https://0q04aw6q8b.execute-api.ap-southeast-2.amazonaws.com/default/sharetime-turn-credentials';
 
-  static const _fallbackIceServers = <Map<String, dynamic>>[
-    <String, dynamic>{
-      'urls': <String>[
-        'stun:stun.l.google.com:19302',
-        'stun:stun1.l.google.com:19302',
-        'stun:stun.cloudflare.com:3478',
-      ],
-    },
-  ];
-
   Future<List<Map<String, dynamic>>> _loadIceServers(
     User user,
     String sessionId,
   ) async {
     final idToken = await user.getIdToken(true);
     if (idToken == null || idToken.isEmpty) {
-      return _fallbackIceServers;
+      throw StateError('Firebase ID token is unavailable.');
     }
 
     final client = HttpClient();
@@ -62,32 +53,67 @@ class WebRtcCallService {
       final response = await request.close();
       final body = await utf8.decodeStream(response);
 
+      debugPrint(
+        'ShareTime TURN API status=${response.statusCode} body=$body',
+      );
+
       if (response.statusCode != HttpStatus.ok) {
-        return _fallbackIceServers;
+        throw StateError(
+          'TURN API failed (${response.statusCode}): $body',
+        );
       }
 
-      final decoded = jsonDecode(body);
-      if (decoded is! Map<String, dynamic>) {
-        return _fallbackIceServers;
+      final decodedValue = jsonDecode(body);
+      if (decodedValue is! Map) {
+        throw const FormatException('TURN API returned invalid JSON.');
       }
 
+      final decoded = Map<String, dynamic>.from(decodedValue);
       final rawServers = decoded['iceServers'];
+
       if (rawServers is! List) {
-        return _fallbackIceServers;
+        throw const FormatException(
+          'TURN API response does not contain iceServers.',
+        );
       }
 
       final servers = rawServers
           .whereType<Map>()
           .map((item) => Map<String, dynamic>.from(item))
+          .map((item) {
+            final urls = item['urls'];
+            return <String, dynamic>{
+              'urls': urls is List
+                  ? urls.map((value) => value.toString()).toList()
+                  : urls?.toString(),
+              if (item['username'] != null)
+                'username': item['username'].toString(),
+              if (item['credential'] != null)
+                'credential': item['credential'].toString(),
+            };
+          })
+          .where((item) => item['urls'] != null)
           .toList();
 
       if (servers.isEmpty) {
-        return _fallbackIceServers;
+        throw const FormatException('TURN API returned no ICE servers.');
       }
 
+      final hasTurn = servers.any((server) {
+        final urls = server['urls'];
+        final values = urls is List ? urls : <dynamic>[urls];
+        return values.any(
+          (value) => value.toString().startsWith('turn:') ||
+              value.toString().startsWith('turns:'),
+        );
+      });
+
+      if (!hasTurn) {
+        throw const FormatException('AWS TURN servers were not returned.');
+      }
+
+      debugPrint('ShareTime AWS TURN loaded: ${servers.length} ICE entries');
       return servers;
-    } catch (_) {
-      return _fallbackIceServers;
     } finally {
       client.close(force: true);
     }
