@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../ratings/provider_rating_summary.dart';
 import 'models/public_provider.dart';
 import 'public_provider_profile_screen.dart';
 import 'repositories/firebase_discover_repository.dart';
@@ -294,6 +295,8 @@ class _ProviderCard extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+                const SizedBox(height: 6),
+                ProviderRatingSummary(providerId: provider.id),
                 if (provider.aboutMe.trim().isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
