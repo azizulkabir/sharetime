@@ -57,7 +57,15 @@ class FirebaseRatingRepository {
       throw StateError('Could not determine the other participant.');
     }
 
-    await _myRatingRef(session.id).set(<String, dynamic>{
+    final ratingRef = _myRatingRef(session.id);
+    final publicScoreRef = _firestore
+        .collection('providerRatingScores')
+        .doc(ratedUserId)
+        .collection('received')
+        .doc(session.id);
+
+    final batch = _firestore.batch();
+    batch.set(ratingRef, <String, dynamic>{
       'sessionId': session.id,
       'raterId': user.uid,
       'ratedUserId': ratedUserId,
@@ -65,5 +73,13 @@ class FirebaseRatingRepository {
       'score': score,
       'createdAt': FieldValue.serverTimestamp(),
     });
+    batch.set(publicScoreRef, <String, dynamic>{
+      'sessionId': session.id,
+      'raterId': user.uid,
+      'ratedUserId': ratedUserId,
+      'score': score,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+    await batch.commit();
   }
 }
