@@ -382,10 +382,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         },
                       ),
-                      const _QuickActionCard(
+                      _QuickActionCard(
                         icon: Icons.account_balance_wallet_outlined,
                         title: 'Wallet',
-                        subtitle: 'Coming next',
+                        subtitle: 'Balances & earnings',
+                        onTap: () {
+                          Navigator.pushNamed(context, AppRoutes.wallet);
+                        },
                       ),
                     ],
                   ),
