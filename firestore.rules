@@ -224,6 +224,46 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      match /ratings/{raterId} {
+        allow read: if signedIn()
+                    && request.auth.uid in
+                       get(/databases/$(database)/documents/serviceSessions/$(sessionId))
+                       .data.participants;
+
+        allow create: if signedIn()
+                      && raterId == request.auth.uid
+                      && request.resource.data.raterId == request.auth.uid
+                      && request.resource.data.sessionId == sessionId
+                      && request.resource.data.score is int
+                      && request.resource.data.score >= 1
+                      && request.resource.data.score <= 5
+                      && request.resource.data.createdAt != null
+                      && request.resource.data.keys().hasOnly([
+                        'sessionId',
+                        'raterId',
+                        'ratedUserId',
+                        'serviceType',
+                        'score',
+                        'createdAt'
+                      ])
+                      && request.auth.uid in
+                         get(/databases/$(database)/documents/serviceSessions/$(sessionId))
+                         .data.participants
+                      && get(/databases/$(database)/documents/serviceSessions/$(sessionId))
+                         .data.serviceType in ['audio', 'video']
+                      && get(/databases/$(database)/documents/serviceSessions/$(sessionId))
+                         .data.callStatus == 'ended'
+                      && request.resource.data.serviceType
+                         == get(/databases/$(database)/documents/serviceSessions/$(sessionId))
+                            .data.serviceType
+                      && request.resource.data.ratedUserId
+                         in get(/databases/$(database)/documents/serviceSessions/$(sessionId))
+                            .data.participants
+                      && request.resource.data.ratedUserId != request.auth.uid;
+
+        allow update, delete: if false;
+      }
+
       match /webrtc/{signalId} {
         allow read, create, update: if signedIn()
                                     && request.auth.uid in
