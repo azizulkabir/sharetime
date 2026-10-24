@@ -24,6 +24,7 @@ class _WalletAdminScreenState extends State<WalletAdminScreen> {
   @override
   void initState() {
     super.initState();
+    _uid.addListener(_refreshUid);
     _checkAdmin();
   }
 
@@ -40,8 +41,13 @@ class _WalletAdminScreenState extends State<WalletAdminScreen> {
     }
   }
 
+  void _refreshUid() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    _uid.removeListener(_refreshUid);
     _uid.dispose();
     _bonus.dispose();
     super.dispose();
