@@ -10,4 +10,5 @@ class AppRoutes {
   static const String myRequests = '/my-requests';
   static const String mySessions = '/my-sessions';
   static const String chats = '/chats';
+  static const String wallet = '/wallet';
 }
