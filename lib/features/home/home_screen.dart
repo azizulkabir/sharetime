@@ -21,6 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   User? _authUser;
   bool _isLoading = true;
   bool _isSigningOut = false;
+  bool _isWalletAdmin = false;
   String? _errorMessage;
 
   @override
@@ -37,10 +38,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final profile = await _profileRepository.fetchCurrentUserProfile();
+      final idToken = await FirebaseAuth.instance.currentUser?.getIdTokenResult();
 
       if (!mounted) return;
       setState(() {
         _profile = profile;
+        _isWalletAdmin = idToken?.claims?['admin'] == true;
         _authUser = _profileRepository.currentAuthUser;
         _isLoading = false;
       });
@@ -390,6 +393,15 @@ class _HomeScreenState extends State<HomeScreen> {
                           Navigator.pushNamed(context, AppRoutes.wallet);
                         },
                       ),
+                      if (_isWalletAdmin)
+                        _QuickActionCard(
+                          icon: Icons.admin_panel_settings_outlined,
+                          title: 'Wallet admin',
+                          subtitle: 'Bonus & withdrawal access',
+                          onTap: () {
+                            Navigator.pushNamed(context, AppRoutes.walletAdmin);
+                          },
+                        ),
                     ],
                   ),
                 ],
