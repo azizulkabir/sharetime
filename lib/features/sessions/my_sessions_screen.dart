@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../ratings/rating_screen.dart';
 import '../service_requests/models/service_request.dart';
 import 'models/service_session.dart';
 import 'repositories/firebase_service_session_repository.dart';
@@ -123,12 +124,36 @@ class MySessionsScreen extends StatelessWidget {
                             ],
                           ),
                         ),
-                        const Text(
-                          'Ready',
-                          style: TextStyle(
-                            color: Color(0xFF16A34A),
-                            fontWeight: FontWeight.w700,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              session.isCallEnded ? 'Ended' : 'Ready',
+                              style: TextStyle(
+                                color: session.isCallEnded
+                                    ? const Color(0xFF64748B)
+                                    : const Color(0xFF16A34A),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            if (session.isCallEnded &&
+                                session.serviceType != ServiceType.text) ...[
+                              const SizedBox(height: 6),
+                              OutlinedButton.icon(
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) => RatingScreen(
+                                        session: session,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.star_outline_rounded),
+                                label: const Text('Rate'),
+                              ),
+                            ],
+                          ],
                         ),
                       ],
                     ),
