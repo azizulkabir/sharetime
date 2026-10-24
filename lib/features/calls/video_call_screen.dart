@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
+import '../ratings/rating_screen.dart';
 import '../sessions/models/service_session.dart';
 import '../sessions/repositories/firebase_service_session_repository.dart';
 import 'services/webrtc_call_service.dart';
@@ -52,7 +53,12 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       setState(() => _ended = true);
       _timer?.cancel();
       Future<void>.delayed(const Duration(milliseconds: 350), () {
-        if (mounted) Navigator.of(context).pop();
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (_) => RatingScreen(session: session),
+          ),
+        );
       });
     });
 
