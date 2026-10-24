@@ -1,10 +1,33 @@
-import { initializeApp, applicationDefault, getApps } from 'firebase-admin/app';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 
-if (!getApps().length) initializeApp({ credential: applicationDefault() });
-const db = getFirestore();
-const auth = getAuth();
+// Firebase service account remains in AWS Secrets Manager; never in the
+// repository, deployment ZIP or Flutter application.
+let firebaseClientsPromise;
+async function firebaseClients() {
+  firebaseClientsPromise ??= (async () => {
+    const secretId = process.env.FIREBASE_SERVICE_ACCOUNT_SECRET_ARN;
+    if (!secretId) throw new Error('Firebase credentials secret is not configured.');
+    const secret = await new SecretsManagerClient({}).send(
+      new GetSecretValueCommand({ SecretId: secretId }),
+    );
+    if (!secret.SecretString) throw new Error('Firebase credentials secret is empty.');
+    const serviceAccount = JSON.parse(secret.SecretString);
+    if (serviceAccount.project_id !== 'ntecway-sharetime') {
+      throw new Error('Unexpected Firebase project.');
+    }
+    const app = getApps().length
+      ? getApps()[0]
+      : initializeApp({
+          credential: cert(serviceAccount),
+          projectId: 'ntecway-sharetime',
+        });
+    return { db: getFirestore(app), auth: getAuth(app) };
+  })();
+  return firebaseClientsPromise;
+}
 
 const DEFAULT_BONUS_PAISA = 5000; // BDT 50, configurable by admin
 const MIN_WITHDRAWAL_PAISA = 50000; // BDT 500
@@ -25,7 +48,7 @@ function requireInteger(value, minimum = 0) {
   return value;
 }
 
-async function actor(event) {
+async function actor(event, auth) {
   const token = (event.headers?.authorization ?? event.headers?.Authorization ?? '')
     .match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) throw Object.assign(new Error('Authentication required.'), { statusCode: 401 });
@@ -40,7 +63,8 @@ function requireAdmin(decoded) {
 
 export async function handler(event) {
   try {
-    const user = await actor(event);
+    const { db, auth } = await firebaseClients();
+    const user = await actor(event, auth);
     const body = event.body ? JSON.parse(event.body) : {};
     const action = body.action;
 
