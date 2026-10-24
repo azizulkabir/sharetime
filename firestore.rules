@@ -26,6 +26,39 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /providerRatingScores/{providerId}/received/{sessionId} {
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+                    && request.resource.data.keys().hasOnly([
+                      'sessionId', 'raterId', 'ratedUserId', 'score', 'createdAt'
+                    ])
+                    && request.resource.data.sessionId == sessionId
+                    && request.resource.data.raterId == request.auth.uid
+                    && request.resource.data.ratedUserId == providerId
+                    && request.resource.data.score is int
+                    && request.resource.data.score >= 1
+                    && request.resource.data.score <= 5
+                    && request.resource.data.createdAt == request.time
+                    && get(/databases/$(database)/documents/serviceSessions/$(sessionId))
+                       .data.callStatus == 'ended'
+                    && get(/databases/$(database)/documents/serviceSessions/$(sessionId))
+                       .data.serviceType in ['audio', 'video']
+                    && request.auth.uid in
+                       get(/databases/$(database)/documents/serviceSessions/$(sessionId))
+                       .data.participants
+                    && providerId in
+                       get(/databases/$(database)/documents/serviceSessions/$(sessionId))
+                       .data.participants
+                    && providerId != request.auth.uid
+                    && getAfter(/databases/$(database)/documents/serviceSessions/$(sessionId)/ratings/$(request.auth.uid))
+                       .data.score == request.resource.data.score
+                    && getAfter(/databases/$(database)/documents/serviceSessions/$(sessionId)/ratings/$(request.auth.uid))
+                       .data.ratedUserId == providerId;
+
+      allow update, delete: if false;
+    }
+
     match /appConfig/ratePolicy {
       allow read: if signedIn();
       allow write: if false;
