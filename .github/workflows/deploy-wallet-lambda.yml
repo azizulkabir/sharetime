@@ -1,0 +1,69 @@
+name: Deploy ShareTime Wallet Lambda
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: sharetime-wallet-lambda-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Package and deploy wallet Lambda
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: wallet-production
+
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install deployment dependencies
+        working-directory: services/wallet-api
+        run: npm install --omit=dev --no-audit --no-fund
+
+      - name: Validate Lambda JavaScript
+        run: node --check services/wallet-api/index.mjs
+
+      - name: Package Lambda
+        working-directory: services/wallet-api
+        run: zip -q -r "$RUNNER_TEMP/wallet-lambda.zip" index.mjs package.json node_modules
+
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ap-southeast-2
+          role-to-assume: ${{ vars.AWS_WALLET_DEPLOY_ROLE_ARN }}
+          role-session-name: sharetime-wallet-deploy
+
+      - name: Confirm assumed role identity
+        run: aws sts get-caller-identity --query Arn --output text
+
+      - name: Deploy Lambda code
+        run: |
+          aws lambda update-function-code \
+            --function-name sharetime-wallet-api \
+            --zip-file "fileb://$RUNNER_TEMP/wallet-lambda.zip" \
+            --region ap-southeast-2 \
+            --query '[FunctionName,LastUpdateStatus]' --output text
+          aws lambda wait function-updated \
+            --function-name sharetime-wallet-api \
+            --region ap-southeast-2
+
+      - name: Verify Lambda deployment
+        run: |
+          aws lambda get-function-configuration \
+            --function-name sharetime-wallet-api \
+            --region ap-southeast-2 \
+            --query '[FunctionName,Runtime,LastUpdateStatus]' --output table
