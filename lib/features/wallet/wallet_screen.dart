@@ -88,6 +88,53 @@ class WalletScreen extends StatelessWidget {
                       icon: Icons.schedule_outlined,
                     ),
                     const SizedBox(height: 20),
+                    Text(
+                      'Withdrawal permission',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          data['withdrawalEnabled'] == true
+                              ? Icons.check_circle_rounded
+                              : Icons.lock_outline_rounded,
+                          color: data['withdrawalEnabled'] == true
+                              ? const Color(0xFF16A34A)
+                              : const Color(0xFF64748B),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            data['withdrawalEnabled'] == true
+                                ? 'Enabled by admin'
+                                : 'Disabled — contact support for approval',
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Minimum withdrawal: BDT 500.00. '
+                      'You must keep BDT 100.00 in provider earnings.',
+                      style: const TextStyle(color: Color(0xFF64748B)),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Maximum currently eligible: ${_money(
+                        earnings > 10000 ? earnings - 10000 : 0,
+                      )}',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 14),
+                    FilledButton.icon(
+                      onPressed: null,
+                      icon: const Icon(Icons.lock_clock_outlined),
+                      label: const Text('Withdraw (backend activation pending)'),
+                    ),
+                    const SizedBox(height: 20),
                     const Text(
                       'Balances are updated by the secure server only. '
                       'Wallet top-up, billing, bonuses, and withdrawals '
