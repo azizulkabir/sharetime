@@ -20,6 +20,13 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Authoritative amounts are created and updated only by the trusted
+    // server using the Firebase Admin SDK. Clients can read their own wallet.
+    match /walletAccounts/{userId} {
+      allow read: if isSelf(userId);
+      allow create, update, delete: if false;
+    }
+
     match /publicProfiles/{userId} {
       allow read: if signedIn();
       allow create, update: if isSelf(userId);
