@@ -45,9 +45,35 @@ class _RatingScreenState extends State<RatingScreen> {
         score: _selectedScore,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Rating submitted.')),
+
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          return AlertDialog(
+            icon: const Icon(
+              Icons.check_circle_rounded,
+              color: Color(0xFF16A34A),
+              size: 42,
+            ),
+            title: const Text('Thank you for your rating'),
+            content: Text(
+              'You rated $_otherName $_selectedScore/5.',
+              textAlign: TextAlign.center,
+            ),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Done'),
+              ),
+            ],
+          );
+        },
       );
+
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
     } catch (error) {
       if (!mounted) return;
       setState(() => _submitting = false);
@@ -55,6 +81,11 @@ class _RatingScreenState extends State<RatingScreen> {
         SnackBar(content: Text('Could not submit rating: $error')),
       );
     }
+  }
+
+  void _cancel() {
+    if (_submitting) return;
+    Navigator.of(context).pop();
   }
 
   @override
@@ -103,6 +134,11 @@ class _RatingScreenState extends State<RatingScreen> {
                       'You rated $_otherName $existingScore/5.',
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Color(0xFF64748B)),
+                    ),
+                    const SizedBox(height: 22),
+                    FilledButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Back'),
                     ),
                   ],
                 ),
@@ -165,6 +201,17 @@ class _RatingScreenState extends State<RatingScreen> {
                           'Submit rating',
                           style: TextStyle(fontWeight: FontWeight.w800),
                         ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: _submitting ? null : _cancel,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
                 ),
               ),
             ],
