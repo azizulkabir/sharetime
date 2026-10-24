@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../service_requests/models/service_request.dart';
 import '../service_requests/repositories/firebase_service_request_repository.dart';
 import '../service_requests/waiting_for_service_request_screen.dart';
+import '../ratings/provider_rating_summary.dart';
 import 'models/public_provider.dart';
 
 class PublicProviderProfileScreen extends StatefulWidget {
@@ -201,6 +202,7 @@ class _PublicProviderProfileScreenState
                   ),
                 ),
                 const SizedBox(height: 10),
+                ProviderRatingSummary(providerId: provider.id),
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
