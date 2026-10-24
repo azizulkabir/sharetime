@@ -39,6 +39,7 @@ class ShareTimeApp extends StatelessWidget {
         AppRoutes.mySessions: (_) => const MySessionsScreen(),
         AppRoutes.chats: (_) => const ChatsScreen(),
         AppRoutes.wallet: (_) => const WalletScreen(),
+        AppRoutes.walletAdmin: (_) => const WalletAdminScreen(),
       },
     );
   }
