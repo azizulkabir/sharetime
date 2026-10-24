@@ -11,4 +11,5 @@ class AppRoutes {
   static const String mySessions = '/my-sessions';
   static const String chats = '/chats';
   static const String wallet = '/wallet';
+  static const String walletAdmin = '/wallet-admin';
 }
