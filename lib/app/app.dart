@@ -13,6 +13,7 @@ import '../features/service_requests/my_requests_screen.dart';
 import '../features/sessions/my_sessions_screen.dart';
 import '../features/splash/splash_screen.dart';
 import '../features/wallet/wallet_screen.dart';
+import '../features/wallet/wallet_admin_screen.dart';
 import 'routes.dart';
 
 class ShareTimeApp extends StatelessWidget {
